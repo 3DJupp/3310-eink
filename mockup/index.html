@@ -18,6 +18,20 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 .details h2{font-size:1.12rem;margin:0 0 10px}.details p{color:#555}.details ul{padding-left:19px;margin:12px 0}.details li{margin:8px 0}.small{font-size:.85rem;color:#5b5a53}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.meta div{border:1px solid #ffffffc7;background:#ffffff65;border-radius:12px;padding:10px 12px}.meta strong{display:block;font-size:.82rem}.meta span{font-size:.8rem;color:#595850}
 .clockface{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:9px}.clocklabel{font-size:9px;font-weight:900;letter-spacing:.1em;border-bottom:2px solid;width:100%;padding-bottom:5px}.clocktime{font-size:31px;font-weight:900;letter-spacing:-.06em;line-height:1}.clockdate{font-size:11px;font-weight:700}.clockseconds{font-size:9px}.clockhint{font-size:8px;border-top:1px solid #777;padding-top:6px;width:100%}
 @media(max-width:620px){body{padding:18px}.layout{grid-template-columns:1fr;max-width:390px;margin:auto}.device{max-width:310px}.details{padding:0 4px}.meta{grid-template-columns:1fr 1fr}}
+
+/* Firmware geometry: 200x200 framebuffer, 21px status bar, five fixed rows,
+   progress at y≈180 and 12px footer at y≈188. */
+.screen{padding:0;gap:0}
+.screen .status{height:21px;min-height:21px;margin:0;padding:5px 6px 3px}
+.screen .heading{height:22px;padding:2px 7px 0;font-size:15px}
+.screen .subheading{height:12px;padding:0 7px}
+.screen .rowitem{height:25px;min-height:25px;padding:2px 10px}
+.screen .rowitem .check{width:15px;height:15px}
+.screen .rowitem .taskname{padding-left:2px}
+.screen .progress{height:8px;min-height:8px;margin:0 8px 0}
+.screen .footer{height:12px;min-height:12px;margin:0;padding:2px 6px 1px}
+.screen .clockface{height:155px;gap:9px;padding:8px 10px}
+.screen .clockface .clocklabel{padding-bottom:5px}
 </style>
 </head>
 <body><main>
