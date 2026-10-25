@@ -22,6 +22,7 @@ Retro Nokia 3310-inspired monochrome e-paper checklist built around the M5Stack 
 - `docs/DEPLOYMENT.md` — installation steps
 - `docs/ARCHITECTURE.md` — MQTT contract and sync behavior
 - `docs/V10_NOTES.md` — current scope and limitations
+- `mockup/index.html` — browser-based UI mockup (open locally)
 
 ## Quick start
 
@@ -39,7 +40,9 @@ Retro Nokia 3310-inspired monochrome e-paper checklist built around the M5Stack 
 7. Run ESPHome Validate / `esphome config` and resolve errors before flashing.
 8. On connection, verify MQTT state and `bad3310/state/config_applied`.
 
-See [Deployment guide](docs/DEPLOYMENT.md) and [Architecture](docs/ARCHITECTURE.md).
+See [Deployment guide](docs/DEPLOYMENT.md) and [Architecture](docs/ARCHITECTURE.md). For the visual concept, open [the browser mockup](mockup/index.html) or read [mockup notes](mockup/README.md).
+
+Funding links are available via Ko-fi and Buy Me a Coffee (see GitHub's **Sponsor** button).
 
 ## Known limitations
 
