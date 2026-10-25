@@ -13,7 +13,7 @@ Retained JSON object with this shape:
 ```json
 {
   "version": 1,
-  "labels": ["Vitamin D", "Jod", "Omega 3", "Zähneputzen", "Babyspa"],
+  "labels": ["Pflanzen gießen", "Post holen", "Wäsche aufhängen", "Küche aufräumen", "Lesen"],
   "hours": [6, 12, 18],
   "minutes": [0, 0, 0],
   "messages": ["Guten Morgen", "Mittagszeit", "Bis später"]
