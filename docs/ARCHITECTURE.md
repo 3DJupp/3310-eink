@@ -6,7 +6,7 @@ Home Assistant is intended to be the configuration UI for labels, wake times, me
 
 ## MQTT contract
 
-### Configuration: `bad3310/config`
+### Configuration: `todo_3310/config`
 
 Retained JSON object with this shape:
 
@@ -24,18 +24,18 @@ The current firmware supports exactly five labels and three schedule slots. The 
 
 ### Task state
 
-- Device state: `bad3310/state/task/<slot>/done`
-- HA command: `bad3310/command/task/<slot>/done`
+- Device state: `todo_3310/state/task/<slot>/done`
+- HA command: `todo_3310/command/task/<slot>/done`
 - Payloads for task completion are expected as `ON`/`OFF` in the initial integration.
 
 ### Telemetry
 
-- `bad3310/state/availability`: `online` or `offline`
-- `bad3310/state/last_seen`: last contact timestamp
-- `bad3310/state/config_applied`: configuration acknowledgement/version marker
-- `bad3310/state/battery_voltage`: voltage
-- `bad3310/state/battery_percent`: estimated percent
-- `bad3310/state/seconds_to_wakeup`: snapshot computed before deep sleep
+- `todo_3310/state/availability`: `online` or `offline`
+- `todo_3310/state/last_seen`: last contact timestamp
+- `todo_3310/state/config_applied`: configuration acknowledgement/version marker
+- `todo_3310/state/battery_voltage`: voltage
+- `todo_3310/state/battery_percent`: estimated percent
+- `todo_3310/state/seconds_to_wakeup`: snapshot computed before deep sleep
 
 ## Wakeup and task behavior
 
@@ -48,3 +48,11 @@ The initial version does not implement a robust per-task revision/merge protocol
 ## Deep sleep and availability
 
 `online` only means the device currently has an MQTT connection; the device is expected to go offline/sleep for long periods. A Home Assistant availability timeout should therefore not be interpreted as a hardware fault by itself. Last-seen time and the last reported wakeup/telemetry are historical values.
+
+
+## Variants and timing requirements
+
+- `todo_3310` is generic: task labels, completion state and individual task times should be configurable. A bathroom checklist for children is only an example use case.
+- `clock_3310` is a separate always-on firmware variant. It must not enter deep sleep and should display the current local time continuously.
+- Wake-up cause controls e-paper refresh: an RTC/timer wake requires a full refresh; a pin/button wake should not automatically force a full refresh every time.
+- Task times are independent schedule entries. A task due time must not be treated as a single global wake time unless the user explicitly configures that behavior.
