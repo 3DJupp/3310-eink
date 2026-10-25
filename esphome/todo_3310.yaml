@@ -50,7 +50,7 @@ substitutions:
       pin: GPIO4
       inverted: false
     reset: GPIO0
-    full_update_every: 1
+    full_update_every: 6
 
 esphome:
   name: ${hostname}
