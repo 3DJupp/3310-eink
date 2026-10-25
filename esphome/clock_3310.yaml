@@ -18,13 +18,13 @@ esphome:
   friendly_name: ${friendly_name}
   comment: "clock_3310 - always-on local clock for M5Stack CoreInk"
   on_boot:
-    priority: 900
-    then:
-      - lambda: |-
-          gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
-          gpio_set_level(GPIO_NUM_12, 1);
-          gpio_hold_dis(GPIO_NUM_12);
-          gpio_deep_sleep_hold_dis();
+    - priority: 900
+      then:
+        - lambda: |-
+            gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
+            gpio_set_level(GPIO_NUM_12, 1);
+            gpio_hold_dis(GPIO_NUM_12);
+            gpio_deep_sleep_hold_dis();
     - priority: -100
       then:
         - delay: 2s
@@ -87,7 +87,7 @@ display:
   - platform: waveshare_epaper
     id: clock_display
     model: ${epaper.type}
-    update_interval: 10s
+    update_interval: 60s
     rotation: ${epaper.rotation}
     cs_pin: ${epaper.cs}
     dc_pin: ${epaper.dc}
@@ -103,7 +103,6 @@ display:
       it.print(100, 4, id(font_small), COLOR_OFF, TextAlign::TOP_CENTER, "CLOCK 3310");
       if (now.is_valid()) {
         it.printf(100, 47, id(font_large), COLOR_ON, TextAlign::TOP_CENTER, "%02d:%02d", now.hour, now.minute);
-        it.printf(100, 91, id(font_medium), COLOR_ON, TextAlign::TOP_CENTER, "%02d", now.second);
         it.printf(100, 126, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "%02d.%02d.%04d", now.day_of_month, now.month, now.year);
         const char *days[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
         it.printf(100, 148, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "%s", days[now.day_of_week % 7]);
