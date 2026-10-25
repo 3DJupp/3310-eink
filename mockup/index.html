@@ -11,26 +11,12 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 .layout{display:grid;grid-template-columns:minmax(260px,350px) 1fr;gap:clamp(24px,5vw,54px);align-items:center}
 .device{width:100%;max-width:360px;aspect-ratio:360/500;margin:auto;background:linear-gradient(145deg,#fff 0%,#f5f5f5 68%,#e5e5e5 100%);border:1px solid #d2d2d2;border-radius:28px;padding:19% 12% 20%;box-shadow:0 18px 38px #0002,inset 0 1px 1px #fff;position:relative}
 .device:before{content:"M5";position:absolute;left:0;right:0;bottom:4%;text-align:center;color:#e9e9e9;font:800 clamp(30px,6vw,52px)/1 system-ui;letter-spacing:.04em;text-shadow:1px 1px 0 #fff,-1px -1px 0 #c9c9c9}.device:after{content:"";position:absolute;top:0;left:23%;width:54%;height:4%;border:1px solid #ddd;border-top:0;border-radius:0 0 9px 9px;background:#f3f3f3}
-.screen{position:relative;width:100%;aspect-ratio:1;background:#c9c9c9;border:5px solid #e6e6e6;outline:1px solid #bdbdbd;border-radius:5px;padding:0;font:10px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;display:flex;flex-direction:column;gap:0;box-shadow:inset 0 0 0 1px #b4b4b4,0 0 0 2px #f8f8f8;image-rendering:pixelated;overflow:hidden}
-.screen *{min-width:0}.status{display:flex;justify-content:space-between;gap:5px;background:#171717;color:#f3f1e7;margin:-10px -10px 0;padding:5px 6px 4px;font-size:9px;font-weight:800}.heading{font-size:15px;font-weight:900;letter-spacing:.02em;margin-top:0}.subheading{font-size:9px;color:#444}.progress{height:7px;border:0;display:flex;padding:0;gap:4px;margin-top:auto}.segment{flex:1;border:1px solid #171717}.segment:last-child{border:1px solid #171717}.segment.filled{background:#171717}
-.rowitem{display:flex;gap:6px;align-items:center;font-size:10px;line-height:1.2;min-height:18px;padding:2px 3px}.check{width:11px;height:11px;border:1.5px solid #111;flex:none;display:grid;place-items:center}.done .check:after{content:"×";font-weight:900;font-size:12px}.done .taskname{text-decoration:line-through;color:#65645c}.selected{background:#171717;color:#f3f1e7;outline:0}.selected .check{border-color:#f3f1e7}.taskname{overflow-wrap:anywhere}.tasktime{margin-left:auto;white-space:nowrap;font-size:8px}
-.finish{border:2px solid;text-align:center;padding:5px 2px;font-weight:900;font-size:11px}.footer{margin:0 -10px -8px;background:#171717;color:#f3f1e7;border-top:0;padding:4px 6px;font-size:8px;display:flex;justify-content:space-between;gap:4px}.button{display:none}.screw{position:absolute;width:15%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fff 0 35%,#c8c8c8 39% 48%,#f4f4f4 54% 66%,#c6c6c6 72%,#eee 78%);box-shadow:inset 0 1px 3px #999}.screw.tl{top:2%;left:2%}.screw.tr{top:2%;right:2%}.screw.bl{bottom:2%;left:2%}.screw.br{bottom:2%;right:2%}
+.screen{position:relative;width:100%;aspect-ratio:1;background:#c9c9c9;border:5px solid #e6e6e6;outline:1px solid #bdbdbd;border-radius:5px;box-shadow:inset 0 0 0 1px #b4b4b4,0 0 0 2px #f8f8f8;overflow:hidden}
+.screen svg{display:block;width:100%;height:100%}.screen text{font-family:"Segoe UI Semibold","Segoe UI",system-ui,sans-serif;font-weight:650}.screen rect,.screen line,.screen path{shape-rendering:crispEdges}
+.button{display:none}.screw{position:absolute;width:15%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fff 0 35%,#c8c8c8 39% 48%,#f4f4f4 54% 66%,#c6c6c6 72%,#eee 78%);box-shadow:inset 0 1px 3px #999}.screw.tl{top:2%;left:2%}.screw.tr{top:2%;right:2%}.screw.bl{bottom:2%;left:2%}.screw.br{bottom:2%;right:2%}
 .details h2{font-size:1.12rem;margin:0 0 10px}.details p{color:#555}.details ul{padding-left:19px;margin:12px 0}.details li{margin:8px 0}.small{font-size:.85rem;color:#5b5a53}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.meta div{border:1px solid #ffffffc7;background:#ffffff65;border-radius:12px;padding:10px 12px}.meta strong{display:block;font-size:.82rem}.meta span{font-size:.8rem;color:#595850}
-.clockface{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:9px}.clocklabel{font-size:9px;font-weight:900;letter-spacing:.1em;border-bottom:2px solid;width:100%;padding-bottom:5px}.clocktime{font-size:31px;font-weight:900;letter-spacing:-.06em;line-height:1}.clockdate{font-size:11px;font-weight:700}.clockseconds{font-size:9px}.clockhint{font-size:8px;border-top:1px solid #777;padding-top:6px;width:100%}
 @media(max-width:620px){body{padding:18px}.layout{grid-template-columns:1fr;max-width:390px;margin:auto}.device{max-width:300px}.details{padding:0 4px}.meta{grid-template-columns:1fr 1fr}}
 
-/* Physical shell based on the supplied reference: portrait white body and centered square grey e-paper. */
-.screen{padding:0;gap:0}
-.screen .status{height:21px;min-height:21px;flex:0 0 21px;margin:0;padding:5px 6px 3px}
-.screen .heading{height:22px;min-height:22px;flex:0 0 22px;padding:2px 7px 0;font-size:15px}
-.screen .subheading{height:12px;min-height:12px;flex:0 0 12px;padding:0 7px}
-.screen .rowitem{height:21px;min-height:21px;flex:0 0 21px;padding:2px 10px;order:2}.screen .rowitem:nth-of-type(4){order:2}.screen .rowitem:nth-of-type(5){order:3}.screen .rowitem:nth-of-type(6){order:4}.screen .rowitem:nth-of-type(7){order:5}.screen .rowitem:nth-of-type(8){order:6}
-.screen .rowitem .check{width:15px;height:15px}
-.screen .rowitem .taskname{padding-left:2px}
-.screen .progress{height:8px;min-height:8px;flex:0 0 8px;margin:0 8px 0;order:7}
-.screen .footer{position:absolute;left:0;right:0;bottom:0;height:8px;min-height:8px;flex:0 0 8px;margin:0;padding:0 6px;font-size:6px;line-height:8px;order:8}
-.screen .clockface{height:155px;gap:9px;padding:8px 10px}.screen:has(.rowitem) .progress{margin-bottom:0}
-.screen .clockface .clocklabel{padding-bottom:5px}
 </style>
 </head>
 <body><main>
@@ -38,17 +24,7 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 <div class="tabs" role="group" aria-label="Firmware-Ansicht"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button></div>
 <div class="layout">
 <section class="device" aria-label="M5Stack CoreInk-Gerätevorschau">
-<div class="screen" id="screen">
-<div class="status"><span id="statusLeft">12:30</span><span id="statusRight">BAT 87%</span></div>
-<div class="heading" id="heading">TODO</div><div class="subheading" id="subheading">2/5 ERLEDIGT</div>
-<div class="progress" id="progress"><i class="segment filled"></i><i class="segment filled"></i><i class="segment"></i><i class="segment"></i><i class="segment"></i></div>
-<div class="rowitem done"><i class="check"></i><span class="taskname">Pflanzen gießen</span></div>
-<div class="rowitem selected"><i class="check"></i><span class="taskname">Post holen</span></div>
-<div class="rowitem"><i class="check"></i><span class="taskname">Wäsche aufhängen</span></div>
-<div class="rowitem"><i class="check"></i><span class="taskname">Küche aufräumen</span></div>
-<div class="rowitem done"><i class="check"></i><span class="taskname">Lesen</span></div>
-<div class="footer"><span id="footerLeft">UP/DOWN: WAHL</span><span id="footerRight">PRESS: OK</span></div>
-</div><i class="screw tl" aria-hidden="true"></i><i class="screw tr" aria-hidden="true"></i><i class="screw bl" aria-hidden="true"></i><i class="screw br" aria-hidden="true"></i><div class="button" aria-hidden="true"></div>
+<div class="screen" id="screen" role="img" aria-label="Displayvorschau 200 × 200 Pixel"></div><i class="screw tl" aria-hidden="true"></i><i class="screw tr" aria-hidden="true"></i><i class="screw bl" aria-hidden="true"></i><i class="screw br" aria-hidden="true"></i><div class="button" aria-hidden="true"></div>
 </section>
 <section class="details"><h2 id="detailsTitle">todo_3310 · To-do-Liste</h2>
 <p id="detailsText">Beispielaufgaben für den Alltag. Die Texte lassen sich in der Konfiguration anpassen.</p>
@@ -60,12 +36,46 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 <script>
 const todoTab=document.getElementById('todoTab'),clockTab=document.getElementById('clockTab');
 function setMode(mode){const clock=mode==='clock';todoTab.setAttribute('aria-pressed',String(!clock));clockTab.setAttribute('aria-pressed',String(clock));
-const s=document.getElementById('screen');s.innerHTML=clock?'<div class="status"><span>CLOCK 3310</span><span>POWER USB</span></div><div class="clockface"><div class="clocklabel">COREINK CLOCK</div><div class="clocktime" id="clockTime">--:--:--</div><div class="clockdate" id="clockDate">--</div><div class="clockseconds">LOKALZEIT · LIVE</div><div class="clockhint">DAUERBETRIEB · DISPLAY AKTIV</div></div><div class="footer"><span>clock_3310</span><span>NO DEEP SLEEP</span></div>':'<div class="status"><span>TODO 3310</span><span>BAT 87%</span></div><div class="heading">Meine Aufgaben</div><div class="subheading">2 von 5 erledigt</div><div class="rowitem done"><i class="check"></i><span class="taskname">Pflanzen gießen</span></div><div class="rowitem selected"><i class="check"></i><span class="taskname">Post holen</span></div><div class="rowitem"><i class="check"></i><span class="taskname">Wäsche aufhängen</span></div><div class="rowitem"><i class="check"></i><span class="taskname">Küche aufräumen</span></div><div class="rowitem done"><i class="check"></i><span class="taskname">Lesen</span></div><div class="progress"><i class="segment filled"></i><i class="segment filled"></i><i class="segment"></i><i class="segment"></i><i class="segment"></i></div><div class="footer"><span>2 von 5 erledigt</span><span id="todoTime">--:--</span></div>';
+document.getElementById('screen').innerHTML=clock?clockSvg():todoSvg();
 document.getElementById('detailsTitle').textContent=clock?'Uhr · clock_3310':'Aufgabenliste · todo_3310';
 document.getElementById('detailsText').textContent=clock?'Die Uhr zeigt die aktuelle lokale Zeit dieses Browsers. Für den Betrieb ist eine dauerhafte Stromversorgung vorgesehen.':'Beispielaufgaben für den Alltag. Die Texte lassen sich in der Konfiguration anpassen.';
-document.getElementById('detailList').innerHTML=clock?'<li>Zeigt Uhrzeit mit Sekunden und Datum.</li><li>Für dauerhafte Stromversorgung vorgesehen.</li><li>Kein Deep Sleep; das Display wird regelmäßig aktualisiert.</li><li>Die Vorschau nutzt die Browser-Uhr, nicht die Uhr eines angeschlossenen Geräts.</li>':'<li>Fünf Beispielaufgaben mit Erledigt-Status.</li><li>Die Anzeige zeigt Statuszeile, Überschrift, Aufgaben, Fortschritt und Fußzeile.</li><li>Aufgaben-Uhrzeiten werden in der aktuellen Firmware noch nicht einzeln angezeigt.</li><li>Der vollständige Refresh nach RTC-Aufwecken ist noch offen und muss getestet werden.</li>';
+document.getElementById('detailList').innerHTML=clock?'<li>Zeigt Uhrzeit, Datum und Wochentag.</li><li>Für dauerhafte Stromversorgung vorgesehen.</li><li>Kein Deep Sleep; das Display wird regelmäßig aktualisiert.</li><li>Die Vorschau nutzt die Browser-Uhr, nicht die Uhr eines angeschlossenen Geräts.</li>':'<li>Fünf Beispielaufgaben mit Erledigt-Status.</li><li>Die Anzeige zeigt Statuszeile, Überschrift, Aufgaben, Fortschritt und Fußzeile.</li><li>Aufgaben-Uhrzeiten werden in der aktuellen Firmware noch nicht einzeln angezeigt.</li><li>Der vollständige Refresh nach RTC-Aufwecken ist noch offen und muss getestet werden.</li>';
 document.querySelector('.meta div:first-child span').textContent=clock?'Nicht aktiv':'Deep Sleep · Zeitplan';document.querySelector('.meta div:last-child span').textContent=clock?'Dauerbetrieb · kein Deep Sleep':'USB optional';
-if(clock)tickClock();}
-function tickClock(){const now=new Date();const t=document.getElementById('clockTime');if(!t)return;const pad=n=>String(n).padStart(2,'0');t.textContent=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());document.getElementById('clockDate').textContent=new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}).format(now);const todoTime=document.getElementById('todoTime');if(todoTime)todoTime.textContent=pad(now.getHours())+':'+pad(now.getMinutes());}
-todoTab.addEventListener('click',()=>setMode('todo'));clockTab.addEventListener('click',()=>setMode('clock'));setInterval(tickClock,1000);tickClock();
+}
+// The screen is drawn as an SVG with a 200x200 viewBox using the same pixel
+// coordinates as the firmware lambdas, so it scales with the bezel instead of
+// mixing fixed CSS pixels with a fluid screen size.
+const ON='#171717',OFF='#c9c9c9',pad=n=>String(n).padStart(2,'0');
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const box=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+const frame=(x,y,w,h,c)=>`<rect x="${x+.5}" y="${y+.5}" width="${w-1}" height="${h-1}" fill="none" stroke="${c}"/>`;
+const ln=(x1,y1,x2,y2,c)=>`<line x1="${x1+.5}" y1="${y1+.5}" x2="${x2+.5}" y2="${y2+.5}" stroke="${c}" stroke-linecap="square"/>`;
+// ESPHome prints from the glyph top; the baseline sits about one font size lower.
+const txt=(x,y,size,c,t,align='start')=>`<text x="${x}" y="${y+size}" font-size="${size}" fill="${c}" text-anchor="${align}">${esc(t)}</text>`;
+const svg=body=>`<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`;
+const demo={labels:['Pflanzen gießen','Post holen','Wäsche aufhängen','Küche aufräumen','Lesen'],done:[true,false,false,false,true],selected:1,order:[1,2,3,0,4],batt:87,bars:3};
+function todoSvg(){const now=new Date();let o=box(0,0,200,21,ON);
+[[5,14,4],[10,11,7],[15,8,10],[20,5,13]].forEach(([x,y,h],i)=>o+=(i<demo.bars?box:frame)(x,y,3,h,OFF));
+o+=txt(91,3,10,OFF,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')+txt(151,3,10,OFF,demo.batt+'%','end');
+o+=frame(160,4,26,13,OFF)+box(186,8,3,5,OFF)+box(162,6,Math.floor(demo.batt*22/100),9,OFF);
+const done=demo.done.filter(Boolean).length;
+o+=txt(7,25,20,ON,'TODO')+txt(193,27,15,ON,done+'/5','end')+ln(5,47,195,47,ON);
+const strike=[65,25,54,87,49];
+demo.order.forEach((task,row)=>{const y=51+row*25,sel=task===demo.selected,fg=sel?OFF:ON;
+if(sel)o+=box(5,y,190,22,ON);o+=frame(10,y+3,15,15,fg);
+if(demo.done[task])o+=ln(12,y+10,16,y+14,fg)+ln(16,y+14,23,y+5,fg);
+o+=txt(32,y+2,12,fg,demo.labels[task]);
+if(demo.done[task])o+=ln(32,y+12,32+strike[task],y+12,fg);else if(sel)o+=`<path d="M183 ${y+6}H191L187 ${y+14}Z" fill="${OFF}"/>`;});
+demo.order.forEach((task,i)=>o+=(demo.done[task]?box:frame)(8+i*38,180,34,7,ON));
+o+=box(0,188,200,12,ON)+txt(6,189,10,OFF,'UP/DOWN: WAHL')+txt(194,189,10,OFF,'PRESS: OK','end');
+return svg(o);}
+function clockSvg(){const now=new Date();const days=['So','Mo','Di','Mi','Do','Fr','Sa'];
+return svg(box(0,0,200,22,ON)+txt(100,4,12,OFF,'CLOCK 3310','middle')
++txt(100,47,34,ON,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')
++txt(100,126,12,ON,pad(now.getDate())+'.'+pad(now.getMonth()+1)+'.'+now.getFullYear(),'middle')
++txt(100,148,12,ON,days[now.getDay()],'middle')
++ln(8,176,192,176,ON)+txt(100,183,12,ON,'DAUERBETRIEB','middle'));}
+let lastMinute=-1;
+function tickClock(){const now=new Date();if(now.getMinutes()===lastMinute)return;lastMinute=now.getMinutes();document.getElementById('screen').innerHTML=clockTab.getAttribute('aria-pressed')==='true'?clockSvg():todoSvg();}
+todoTab.addEventListener('click',()=>setMode('todo'));clockTab.addEventListener('click',()=>setMode('clock'));setInterval(tickClock,1000);setMode('todo');
 </script></body></html>
