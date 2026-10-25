@@ -1,8 +1,8 @@
 # Backlog — todo_3310 / clock_3310
 
 ## P0 — Required before first reliable release
-- [ ] Add and validate the generic `esphome/todo_3310.yaml` firmware.
-- [ ] Add `esphome/clock_3310.yaml`: actual local time, continuous operation, no deep sleep.
+- [ ] Validate/compile the new generic `esphome/todo_3310.yaml` firmware.
+- [ ] Validate/compile `esphome/clock_3310.yaml`: actual local time, continuous operation, no deep sleep.
 - [ ] Implement independent per-task times / due windows and calculate the next wake-up from all active task schedules.
 - [ ] Force a full e-paper refresh after RTC/timer wake-up.
 - [ ] Keep pin/button wake-up on the partial-refresh path when possible; do not force full refresh on every pin wake.
