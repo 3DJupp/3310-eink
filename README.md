@@ -40,7 +40,7 @@ Retro Nokia 3310-inspired monochrome e-paper checklist built around the M5Stack 
 7. Run ESPHome Validate / `esphome config` and resolve errors before flashing.
 8. On connection, verify MQTT state and `bad3310/state/config_applied`.
 
-See [Deployment guide](docs/DEPLOYMENT.md) and [Architecture](docs/ARCHITECTURE.md). For the visual concept, open [the browser mockup](mockup/index.html) or read [mockup notes](mockup/README.md).
+See [Deployment guide](docs/DEPLOYMENT.md) and [Architecture](docs/ARCHITECTURE.md). For the visual concept, open [the browser mockup](mockup/index.html) or read [mockup notes](mockup/README.md). A GitHub Pages workflow is included; after its first successful run, the public preview should be available at https://3djupp.github.io/3310-eink/.
 
 Funding links are available via Ko-fi and Buy Me a Coffee (see GitHub's **Sponsor** button).
 
