@@ -234,6 +234,7 @@ mqtt:
               if (messages.size() > 1) id(wake_message_1) = messages[1].as<std::string>();
               if (messages.size() > 2) id(wake_message_2) = messages[2].as<std::string>();
               ESP_LOGI("ha_sync", "Applied Home Assistant config version %d", root["version"] | 1);
+              return true;
             });
         - component.update: todo_display
         - mqtt.publish:
