@@ -1,0 +1,19 @@
+# Credentials and local config
+**/secrets.yaml
+secrets.yaml
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ESPHome build/cache output
+.esphome/
+build/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
