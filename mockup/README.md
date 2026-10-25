@@ -1,6 +1,6 @@
 # CoreInk UI preview
 
-Open `index.html` in a browser to switch between the two conceptual firmware views:
+Open [`index.html`](index.html) in a browser to switch between the two conceptual firmware views. The page also links directly to the [todo_3310 YAML](../esphome/todo_3310.yaml) and [clock_3310 YAML](../esphome/clock_3310.yaml):
 
 - `todo_3310`: generic five-task checklist with the CoreInk-style status bar, task rows, progress strip and footer.
 - `clock_3310`: browser-local live clock as a preview of the always-on, no-deep-sleep variant.
