@@ -15,14 +15,14 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 
 ## Repository layout
 
-- `esphome/todo_3310.yaml` — generic checklist firmware
-- `homeassistant/packages/todo_3310.yaml` — HA helpers, MQTT entities and automations
-- `homeassistant/dashboards/todo_3310.yaml` — manual Lovelace dashboard
+- [`esphome/todo_3310.yaml`](esphome/todo_3310.yaml) — firmware for the task list
+- [`esphome/clock_3310.yaml`](esphome/clock_3310.yaml) — firmware for the always-on clock\n- [`homeassistant/packages/todo_3310.yaml`](homeassistant/packages/todo_3310.yaml) — HA helpers, MQTT entities and automations
+- [`homeassistant/dashboards/todo_3310.yaml`](homeassistant/dashboards/todo_3310.yaml) — manual Lovelace dashboard
 - `examples/secrets.example.yaml` — example secret keys; use real values only in local `secrets.yaml`
 - `docs/DEPLOYMENT.md` — installation steps
 - `docs/ARCHITECTURE.md` — MQTT contract and sync behavior
 - `docs/V10_NOTES.md` — current scope and limitations
-- `mockup/index.html` — browser-based UI mockup (open locally)
+- [`mockup/index.html`](mockup/index.html) — browser-based UI mockup with links to both firmware YAMLs
 
 ## Quick start
 
@@ -36,7 +36,7 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
    Merge this into an existing `homeassistant:` block; do not create a duplicate key.
 4. Validate and restart Home Assistant.
 5. Add `homeassistant/dashboards/todo_3310.yaml` to a manual dashboard in YAML mode.
-6. Copy `esphome/coreink_todo_3310.yaml` into ESPHome and configure local secrets.
+6. Copy `esphome/todo_3310.yaml` into ESPHome and configure local secrets.
 7. Run ESPHome Validate / `esphome config` and resolve errors before flashing.
 8. On connection, verify MQTT state and `todo_3310/state/config_applied`.
 
