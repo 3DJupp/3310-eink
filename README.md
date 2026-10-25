@@ -16,7 +16,8 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 ## Repository layout
 
 - [`esphome/todo_3310.yaml`](esphome/todo_3310.yaml) — firmware for the task list
-- [`esphome/clock_3310.yaml`](esphome/clock_3310.yaml) — firmware for the always-on clock\n- [`homeassistant/packages/todo_3310.yaml`](homeassistant/packages/todo_3310.yaml) — HA helpers, MQTT entities and automations
+- [`esphome/clock_3310.yaml`](esphome/clock_3310.yaml) — firmware for the always-on clock
+- [`homeassistant/packages/todo_3310.yaml`](homeassistant/packages/todo_3310.yaml) — HA helpers, MQTT entities and automations
 - [`homeassistant/dashboards/todo_3310.yaml`](homeassistant/dashboards/todo_3310.yaml) — manual Lovelace dashboard
 - `examples/secrets.example.yaml` — example secret keys; use real values only in local `secrets.yaml`
 - `docs/DEPLOYMENT.md` — installation steps
