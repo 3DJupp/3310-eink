@@ -47,11 +47,11 @@ Funding links are available via Ko-fi and Buy Me a Coffee (see GitHub's **Sponso
 ## Known limitations
 
 - Exactly five task slots and three daily schedule slots are supported.
-- Tasks are not filtered by time of day; all remain in the shared list.
+- Independent due times per task are not implemented yet; the current firmware uses shared daily wake slots and keeps all tasks in the list.
 - `seconds_to_wakeup` is calculated before sleep and is not a live countdown.
 - A sleeping ESP32 cannot receive an immediate update; retained settings apply on the next wake/connect.
 - Offline conflicting edits do not have a robust revision/merge protocol.
-- Display refresh, sleep/wakeup behavior and battery estimates still require hardware testing.
+- Display refresh, sleep/wakeup behavior and battery estimates still require hardware testing. RTC-wake full refresh is not yet guaranteed by the current driver configuration.
 
 ## Security
 
