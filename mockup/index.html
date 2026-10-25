@@ -6,7 +6,7 @@
 <style>
 :root{color-scheme:light;--ink:#171717;--paper:#f3f1e7;--muted:#69685f}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 15%,#faf9f4,#d9d6cb 72%);color:var(--ink);font:16px/1.45 system-ui,sans-serif;display:grid;place-items:center;padding:24px}
-main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,3vw,2rem);margin:0 0 6px;letter-spacing:-.03em}header p{margin:0;color:#56554e}
+main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,3vw,2rem);margin:0 0 6px;letter-spacing:-.03em}header p{margin:0;color:#56554e}.firmware-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.firmware-links a{display:inline-block;color:#222;text-decoration:none;border:1px solid #77766e;border-radius:10px;padding:8px 12px;background:#ffffff80;font-weight:650;font-size:.92rem}.firmware-links a:hover{text-decoration:underline;background:#fff}
 .tabs{display:flex;gap:8px;margin:20px 0}.tabs button{font:inherit;font-weight:650;border:1px solid #77766e;border-radius:999px;padding:9px 16px;background:#ffffff80;color:#222;cursor:pointer}.tabs button[aria-pressed=true]{background:#222;color:#fff}
 .layout{display:grid;grid-template-columns:minmax(260px,350px) 1fr;gap:clamp(24px,5vw,54px);align-items:center}
 .device{width:100%;max-width:340px;margin:auto;background:linear-gradient(145deg,#3a3a3a,#171717 68%);border:1px solid #4b4b4b;border-radius:32px;padding:23px 21px 27px;box-shadow:0 28px 55px #0003, inset 0 1px 1px #ffffff30;position:relative}
@@ -25,17 +25,17 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 .screen .status{height:21px;min-height:21px;margin:0;padding:5px 6px 3px}
 .screen .heading{height:22px;padding:2px 7px 0;font-size:15px}
 .screen .subheading{height:12px;padding:0 7px}
-.screen .rowitem{height:25px;min-height:25px;padding:2px 10px}
+.screen .rowitem{height:25px;min-height:25px;padding:2px 10px;order:2}.screen .rowitem:nth-of-type(4){order:2}.screen .rowitem:nth-of-type(5){order:3}.screen .rowitem:nth-of-type(6){order:4}.screen .rowitem:nth-of-type(7){order:5}.screen .rowitem:nth-of-type(8){order:6}
 .screen .rowitem .check{width:15px;height:15px}
 .screen .rowitem .taskname{padding-left:2px}
-.screen .progress{height:8px;min-height:8px;margin:0 8px 0}
-.screen .footer{height:12px;min-height:12px;margin:0;padding:2px 6px 1px}
+.screen .progress{height:8px;min-height:8px;margin:0 8px 0;order:7}
+.screen .footer{height:12px;min-height:12px;margin:0;padding:2px 6px 1px;order:8}
 .screen .clockface{height:155px;gap:9px;padding:8px 10px}
 .screen .clockface .clocklabel{padding-bottom:5px}
 </style>
 </head>
 <body><main>
-<header><h1>3310 ePaper · CoreInk</h1><p>Zwei Firmware-Ansichten im Stil des 200 × 200 px monochromen Displays.</p></header>
+<header><h1>CoreInk · Aufgabenliste und Uhr</h1><p>Zwei einfache Ansichten für das monochrome 200 × 200-Pixel-Display.</p><nav class="firmware-links" aria-label="Firmware herunterladen"><a href="../esphome/todo_3310.yaml" download>YAML herunterladen: Aufgabenliste</a><a href="../esphome/clock_3310.yaml" download>YAML herunterladen: Uhr</a></nav></header>
 <div class="tabs" role="group" aria-label="Firmware-Ansicht"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button></div>
 <div class="layout">
 <section class="device" aria-label="M5Stack CoreInk-Gerätevorschau">
@@ -52,19 +52,19 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 </div><div class="button" aria-hidden="true"></div>
 </section>
 <section class="details"><h2 id="detailsTitle">todo_3310 · To-do-Liste</h2>
-<p id="detailsText">Generische Beispielaufgaben mit individuellen Uhrzeiten – keine fest verdrahtete Bad-Checkliste.</p>
-<ul id="detailList"><li>Aufgaben, Erledigt-Status und Zeitfenster sind in dieser Vorschau beispielhaft.</li><li>Firmware-Layout: Statuszeile, Überschrift, Fortschrittsbalken, fünf Zeilen und Fußzeile.</li><li>Joystick-Navigation und Abhaken; Akkustand und nächster Wake-up in der Statusanzeige.</li><li>Wake-up-Ursache steuert den Refresh: RTC = Full Refresh, Pin-Wakeup nicht automatisch.</li></ul>
-<div class="meta"><div><strong>todo_3310</strong><span>Deep Sleep · Zeitplan</span></div><div><strong>clock_3310</strong><span>Dauerbetrieb · kein Deep Sleep</span></div></div>
-<p class="small" id="note">Die Seite ist eine browserbasierte Nachbildung des Firmware-Layouts, kein Live-Screenshot des Geräts. Schriftmetriken und Refresh-Verhalten müssen am CoreInk validiert werden.</p>
+<p id="detailsText">Beispielaufgaben für den Alltag. Die Texte lassen sich in der Konfiguration anpassen.</p>
+<ul id="detailList"><li>Fünf Beispielaufgaben; Namen und Erledigt-Status sind hier nur zur Vorschau eingetragen.</li><li>Die Ansicht zeigt Statuszeile, Überschrift, fünf Aufgaben, Fortschritt und Fußzeile.</li><li>Die Uhrzeiten einzelner Aufgaben sind noch nicht Teil der Firmware-Anzeige.</li><li>Der vollständige Display-Refresh nach RTC-Aufwecken ist noch offen und muss getestet werden.</li></ul>
+<div class="meta"><div><strong>Aufgabenliste</strong><span>Mit Energiesparmodus</span></div><div><strong>Uhr</strong><span>Für dauerhafte Stromversorgung</span></div></div>
+<p class="small" id="note">Dies ist eine Vorschau im Browser, kein Foto des laufenden Geräts. Die Firmware ist experimentell; vor dem Flashen bitte mit ESPHome prüfen.</p>
 </section></div>
 </main>
 <script>
 const todoTab=document.getElementById('todoTab'),clockTab=document.getElementById('clockTab');
 function setMode(mode){const clock=mode==='clock';todoTab.setAttribute('aria-pressed',String(!clock));clockTab.setAttribute('aria-pressed',String(clock));
-const s=document.getElementById('screen');s.innerHTML=clock?'<div class="status"><span>CLOCK 3310</span><span>POWER USB</span></div><div class="clockface"><div class="clocklabel">COREINK CLOCK</div><div class="clocktime" id="clockTime">--:--:--</div><div class="clockdate" id="clockDate">--</div><div class="clockseconds">LOKALZEIT · LIVE</div><div class="clockhint">DAUERBETRIEB · DISPLAY AKTIV</div></div><div class="footer"><span>clock_3310</span><span>NO DEEP SLEEP</span></div>':'<div class="status"><span>TODO 3310</span><span>BAT 87%</span></div><div class="heading">MEINE TO-DOS</div><div class="subheading">HEUTE · 3/5 OFFEN</div><div class="progress"><i class="segment filled"></i><i class="segment filled"></i><i class="segment"></i><i class="segment"></i><i class="segment"></i></div><div class="rowitem done"><i class="check"></i><span class="taskname">Pflanzen gießen</span><span class="tasktime">08:00</span></div><div class="rowitem selected"><i class="check"></i><span class="taskname">Post holen</span><span class="tasktime">12:30</span></div><div class="rowitem"><i class="check"></i><span class="taskname">Wäsche aufhängen</span><span class="tasktime">17:00</span></div><div class="rowitem"><i class="check"></i><span class="taskname">Küche aufräumen</span><span class="tasktime">19:00</span></div><div class="rowitem done"><i class="check"></i><span class="taskname">Lesen</span><span class="tasktime">20:30</span></div><div class="footer"><span>2/5 ERLEDIGT</span><span id="todoTime">--:--</span></div>';
-document.getElementById('detailsTitle').textContent=clock?'clock_3310 · Uhr':'todo_3310 · To-do-Liste';
-document.getElementById('detailsText').textContent=clock?'Die lokale echte Uhrzeit läuft live im Browser. Diese Variante ist für USB-/Netzteilbetrieb ohne Deep Sleep gedacht.':'Generische Beispielaufgaben mit individuellen Uhrzeiten – keine fest verdrahtete Bad-Checkliste.';
-document.getElementById('detailList').innerHTML=clock?'<li>Zeigt die aktuelle lokale Zeit inklusive Sekunden und Datum.</li><li>Für dauerhafte Anzeige am Stromanschluss konzipiert.</li><li>Kein Deep Sleep; regelmäßige Aktualisierung hält die Uhrzeit aktuell.</li><li>Die Browser-Uhr zeigt deine aktuelle Gerätezeit, nicht die Zeit eines angeschlossenen CoreInk.</li>':'<li>Aufgaben, Erledigt-Status und Zeitfenster sind in dieser Vorschau beispielhaft.</li><li>Firmware-Layout: Statuszeile, Überschrift, Fortschrittsbalken, fünf Zeilen und Fußzeile.</li><li>Joystick-Navigation und Abhaken; Akkustand und nächster Wake-up in der Statusanzeige.</li><li>Wake-up-Ursache steuert den Refresh: RTC = Full Refresh, Pin-Wakeup nicht automatisch.</li>';
+const s=document.getElementById('screen');s.innerHTML=clock?'<div class="status"><span>CLOCK 3310</span><span>POWER USB</span></div><div class="clockface"><div class="clocklabel">COREINK CLOCK</div><div class="clocktime" id="clockTime">--:--:--</div><div class="clockdate" id="clockDate">--</div><div class="clockseconds">LOKALZEIT · LIVE</div><div class="clockhint">DAUERBETRIEB · DISPLAY AKTIV</div></div><div class="footer"><span>clock_3310</span><span>NO DEEP SLEEP</span></div>':'<div class="status"><span>TODO 3310</span><span>BAT 87%</span></div><div class="heading">Meine Aufgaben</div><div class="subheading">2 von 5 erledigt</div><div class="rowitem done"><i class="check"></i><span class="taskname">Pflanzen gießen</span></div><div class="rowitem selected"><i class="check"></i><span class="taskname">Post holen</span></div><div class="rowitem"><i class="check"></i><span class="taskname">Wäsche aufhängen</span></div><div class="rowitem"><i class="check"></i><span class="taskname">Küche aufräumen</span></div><div class="rowitem done"><i class="check"></i><span class="taskname">Lesen</span></div><div class="progress"><i class="segment filled"></i><i class="segment filled"></i><i class="segment"></i><i class="segment"></i><i class="segment"></i></div><div class="footer"><span>2 von 5 erledigt</span><span id="todoTime">--:--</span></div>';
+document.getElementById('detailsTitle').textContent=clock?'Uhr · clock_3310':'Aufgabenliste · todo_3310';
+document.getElementById('detailsText').textContent=clock?'Die Uhr zeigt die aktuelle lokale Zeit dieses Browsers. Für den Betrieb ist eine dauerhafte Stromversorgung vorgesehen.':'Beispielaufgaben für den Alltag. Die Texte lassen sich in der Konfiguration anpassen.';
+document.getElementById('detailList').innerHTML=clock?'<li>Zeigt Uhrzeit mit Sekunden und Datum.</li><li>Für dauerhafte Stromversorgung vorgesehen.</li><li>Kein Deep Sleep; das Display wird regelmäßig aktualisiert.</li><li>Die Vorschau nutzt die Browser-Uhr, nicht die Uhr eines angeschlossenen Geräts.</li>':'<li>Fünf Beispielaufgaben mit Erledigt-Status.</li><li>Die Anzeige zeigt Statuszeile, Überschrift, Aufgaben, Fortschritt und Fußzeile.</li><li>Aufgaben-Uhrzeiten werden in der aktuellen Firmware noch nicht einzeln angezeigt.</li><li>Der vollständige Refresh nach RTC-Aufwecken ist noch offen und muss getestet werden.</li>';
 document.querySelector('.meta div:first-child span').textContent=clock?'Nicht aktiv':'Deep Sleep · Zeitplan';document.querySelector('.meta div:last-child span').textContent=clock?'Dauerbetrieb · kein Deep Sleep':'USB optional';
 if(clock)tickClock();}
 function tickClock(){const now=new Date();const t=document.getElementById('clockTime');if(!t)return;const pad=n=>String(n).padStart(2,'0');t.textContent=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());document.getElementById('clockDate').textContent=new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}).format(now);const todoTime=document.getElementById('todoTime');if(todoTime)todoTime.textContent=pad(now.getHours())+':'+pad(now.getMinutes());}
