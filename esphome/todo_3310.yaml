@@ -521,19 +521,31 @@ font:
   - file: "fonts/segoeuithibd.ttf"
     id: font_xs
     size: 10
-    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß€"
+    glyphs:
+      - " "
+      - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
   - file: "fonts/segoeuithibd.ttf"
     id: font_sm
     size: 12
-    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß€"
+    glyphs:
+      - " "
+      - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
   - file: "fonts/segoeuithibd.ttf"
     id: font_md
     size: 15
-    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß€"
+    glyphs:
+      - " "
+      - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
   - file: "fonts/segoeuithibd.ttf"
     id: font_l
     size: 20
-    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß€"
+    glyphs:
+      - " "
+      - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
 
 display:
   - platform: waveshare_epaper
