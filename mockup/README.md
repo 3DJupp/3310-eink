@@ -1,5 +1,8 @@
-# Mockup
+# CoreInk UI preview
 
-Öffne `index.html` lokal im Browser, um das konzeptionelle BAD3310-Display zu sehen.
+Open `index.html` in a browser to switch between the two conceptual firmware views:
 
-Das Mockup illustriert die monochrome Checklisten-UI und das Gehäuseformat. Es ist kein Hardware-Screenshot und kein Nachweis, dass Firmware oder Display bereits getestet wurden.
+- `todo_3310`: generic five-task checklist with the CoreInk-style status bar, task rows, progress strip and footer.
+- `clock_3310`: browser-local live clock as a preview of the always-on, no-deep-sleep variant.
+
+The device shell is a CSS illustration inspired by the M5Stack CoreInk, not a product photograph. The page is a layout approximation, not a hardware screenshot or proof that the firmware has compiled or been tested on-device.
