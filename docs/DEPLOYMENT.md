@@ -13,7 +13,7 @@ This guide covers the current experimental v10 integration. Back up your ESPHome
 ## Install the Home Assistant package
 
 1. Configure and start your MQTT broker, and configure Home Assistant's MQTT integration.
-2. Copy `homeassistant/packages/bad3310.yaml` to `<HA config>/packages/bad3310.yaml`.
+2. Copy `homeassistant/packages/todo_3310.yaml` to `<HA config>/packages/todo_3310.yaml`.
 3. Ensure packages are included under the existing `homeassistant:` section in `configuration.yaml`:
    ```yaml
    homeassistant:
@@ -21,31 +21,31 @@ This guide covers the current experimental v10 integration. Back up your ESPHome
    ```
    If `homeassistant:` already exists, merge the option into it rather than adding a duplicate key.
 4. Validate the Home Assistant configuration and restart.
-5. Search Developer Tools → States for `bad3310` entities. Exact entity IDs can vary with HA version and entity registry history.
+5. Search Developer Tools → States for `todo_3310` entities. Exact entity IDs can vary with HA version and entity registry history.
 
 The package defines five task labels and completion helpers, three wake times and messages, MQTT telemetry, config publishing, task-state synchronization, and a daily reset at wake slot 0. Review that reset behavior before relying on tasks that should not reset each morning.
 
 ## Add the dashboard
 
-Create a manual/YAML dashboard and paste `homeassistant/dashboards/bad3310.yaml`. Check all referenced entities; adjust IDs if your instance generated different ones.
+Create a manual/YAML dashboard and paste `homeassistant/dashboards/todo_3310.yaml`. Check all referenced entities; adjust IDs if your instance generated different ones.
 
 ## Configure ESPHome
 
-1. Copy `esphome/coreink_bad3310.yaml` into your ESPHome configuration directory.
+1. Copy `esphome/coreink_todo_3310.yaml` into your ESPHome configuration directory.
 2. Copy the key names from `examples/secrets.example.yaml` into your local `secrets.yaml`, then replace every example value. Never commit the real secrets file.
 3. Ensure the MQTT broker hostname/IP is reachable from the CoreInk network.
 4. Run ESPHome Validate / `esphome config <file.yaml>` and fix all errors before flashing.
-5. After boot, check the MQTT topics and confirm `bad3310/state/config_applied` is published.
+5. After boot, check the MQTT topics and confirm `todo_3310/state/config_applied` is published.
 
 ## MQTT topics
 
-- `bad3310/config`: retained JSON settings (labels, hours, minutes, messages)
-- `bad3310/command/task/<0..4>/done`: retained task-state commands from HA
-- `bad3310/state/task/<0..4>/done`: task-state reports from device
-- `bad3310/state/availability`: online/offline
-- `bad3310/state/last_seen`: last contact
-- `bad3310/state/battery_voltage`, `bad3310/state/battery_percent`: battery telemetry
-- `bad3310/state/seconds_to_wakeup`: snapshot calculated before sleep
+- `todo_3310/config`: retained JSON settings (labels, hours, minutes, messages)
+- `todo_3310/command/task/<0..4>/done`: retained task-state commands from HA
+- `todo_3310/state/task/<0..4>/done`: task-state reports from device
+- `todo_3310/state/availability`: online/offline
+- `todo_3310/state/last_seen`: last contact
+- `todo_3310/state/battery_voltage`, `todo_3310/state/battery_percent`: battery telemetry
+- `todo_3310/state/seconds_to_wakeup`: snapshot calculated before sleep
 
 ## Safety and troubleshooting
 
