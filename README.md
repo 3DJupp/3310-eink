@@ -2,7 +2,14 @@
 
 Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, ESPHome, Home Assistant and MQTT: `todo_3310` (one checklist per daypart, deep sleep between dayparts) and `clock_3310` (live clock, powered continuously without deep sleep).
 
-**[Open the live demo](https://3djupp.github.io/3310-eink/)** — an interactive browser preview of both firmware screens, drawn from the same 200 × 200 pixel coordinates as the firmware. You can switch dayparts and press the device buttons there.
+<p align="center">
+  <a href="https://3djupp.github.io/3310-eink/"><img src="docs/images/demo-list.png" width="260" alt="Morning checklist on the CoreInk preview"></a>
+  &nbsp;
+  <a href="https://3djupp.github.io/3310-eink/"><img src="docs/images/demo-done.png" width="260" alt="Finished evening list in the sleep image"></a>
+</p>
+
+<p align="center"><b><a href="https://3djupp.github.io/3310-eink/">▶ Try the interactive demo</a></b><br>
+Press the device buttons, switch dayparts, language and battery level. The screen is drawn from the same 200 × 200 pixel coordinates as the firmware.</p>
 
 > **Status: experimental.** Both firmware files pass `esphome config` and `esphome compile` with ESPHome 2026.10, but have not been tested end to end on CoreInk hardware yet. Run ESPHome Validate before flashing.
 
@@ -27,7 +34,8 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — installation steps
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — MQTT contract and sync behavior
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — open work
-- [`mockup/index.html`](mockup/index.html) — source of the live demo, deployed to GitHub Pages by `.github/workflows/pages.yml`
+- [`mockup/index.html`](mockup/index.html) — source of the live demo; the root [`index.html`](index.html) forwards the GitHub Pages start page to it
+- [`docs/images/`](docs/images) — screenshots of the demo used in this README
 
 ## Quick start
 

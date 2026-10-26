@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>todo_3310 &amp; clock_3310 · CoreInk UI preview</title>
+<title>3310-eink · Nokia-style e-paper checklist</title>
+<meta name="description" content="Interactive demo of a Nokia 3310-style checklist and clock for the M5Stack CoreInk e-paper display, run by ESPHome and managed from Home Assistant.">
 <style>
 :root{color-scheme:light;--ink:#171717;--paper:#f3f1e7;--muted:#69685f}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 15%,#faf9f4,#d9d6cb 72%);color:var(--ink);font:16px/1.45 system-ui,sans-serif;display:grid;place-items:center;padding:24px}
-main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,3vw,2rem);margin:0 0 6px;letter-spacing:-.03em}header p{margin:0;color:#56554e}.firmware-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.firmware-links a{display:inline-block;color:#222;text-decoration:none;border:1px solid #77766e;border-radius:10px;padding:8px 12px;background:#ffffff80;font-weight:650;font-size:.92rem}.firmware-links a:hover{text-decoration:underline;background:#fff}
+main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,3vw,2rem);margin:0 0 6px;letter-spacing:-.03em}header p{margin:0;color:#56554e}.firmware-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.firmware-links a{display:inline-block;color:#222;text-decoration:none;border:1px solid #77766e;border-radius:10px;padding:8px 12px;background:#ffffff80;font-weight:650;font-size:.92rem}.firmware-links a.primary{background:#222;color:#fff;border-color:#222}.firmware-links a:hover{text-decoration:underline;background:#fff}
 .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.tabs button,.keys button{font:inherit;font-weight:650;border:1px solid #77766e;border-radius:999px;padding:9px 16px;background:#ffffff80;color:#222;cursor:pointer}.tabs button[aria-pressed=true]{background:#222;color:#fff}.tabs .sep{width:1px;background:#77766e80;margin:0 4px}
 .layout{display:grid;grid-template-columns:minmax(260px,350px) 1fr;gap:clamp(24px,5vw,54px);align-items:start}
 .device{width:100%;max-width:360px;aspect-ratio:360/500;margin:auto;background:linear-gradient(145deg,#fff 0%,#f5f5f5 68%,#e5e5e5 100%);border:1px solid #d2d2d2;border-radius:28px;padding:19% 12% 20%;box-shadow:0 18px 38px #0002,inset 0 1px 1px #fff;position:relative}
@@ -16,12 +17,13 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 .screw{position:absolute;width:15%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fff 0 35%,#c8c8c8 39% 48%,#f4f4f4 54% 66%,#c6c6c6 72%,#eee 78%);box-shadow:inset 0 1px 3px #999}.screw.tl{top:2%;left:2%}.screw.tr{top:2%;right:2%}.screw.bl{bottom:2%;left:2%}.screw.br{bottom:2%;right:2%}
 .keys{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px auto 0;max-width:360px}.keys button{padding:7px 13px;font-size:.88rem}.keys[hidden]{display:none}.keys .batt{display:flex;align-items:center;gap:6px;font-size:.88rem;font-weight:650}.keys .batt input{width:110px}
 .details h2{font-size:1.12rem;margin:0 0 10px}.details p{color:#555}.details ul{padding-left:19px;margin:12px 0}.details li{margin:8px 0}.small{font-size:.85rem;color:#5b5a53}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.meta div{border:1px solid #ffffffc7;background:#ffffff65;border-radius:12px;padding:10px 12px}.meta strong{display:block;font-size:.82rem}.meta span{font-size:.8rem;color:#595850}
+.firmware-links a.primary:hover{background:#000;color:#fff}.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:40px 0 18px}.how div{border:1px solid #ffffffc7;background:#ffffff65;border-radius:12px;padding:12px 14px}.how strong{display:block;margin-bottom:4px}.how span{font-size:.9rem;color:#56554e}footer.small a{color:inherit}
 @media(max-width:620px){body{padding:16px}.layout{grid-template-columns:1fr;max-width:390px;margin:auto}.device{max-width:300px}.details{padding:0 4px}}
 </style>
 </head>
 <body><main>
-<header><h1>CoreInk · Checklist and clock</h1><p>Two simple views for the monochrome 200 × 200 pixel display.</p>
-<nav class="firmware-links" aria-label="Firmware and project"><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/todo_3310.yaml">Firmware YAML: checklist</a><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/clock_3310.yaml">Firmware YAML: clock</a><a href="https://github.com/3DJupp/3310-eink">Project on GitHub</a></nav></header>
+<header><h1>3310-eink</h1><p>A Nokia 3310-style checklist and clock for the M5Stack CoreInk e-paper display. ESPHome runs the device, Home Assistant manages the tasks. Try it below: the screen is drawn from the same pixel coordinates as the firmware.</p>
+<nav class="firmware-links" aria-label="Project links"><a class="primary" href="https://github.com/3DJupp/3310-eink/blob/main/docs/DEPLOYMENT.md">Setup guide</a><a href="https://github.com/3DJupp/3310-eink">Source on GitHub</a><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/todo_3310.yaml">Firmware: checklist</a><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/clock_3310.yaml">Firmware: clock</a></nav></header>
 <div class="tabs" role="group" aria-label="Firmware view"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button><button id="langTab" aria-pressed="false" title="Display language">DE · EN</button><span class="sep" aria-hidden="true"></span><span id="slotTabs" style="display:contents"></span></div>
 <div class="layout">
 <div>
@@ -34,6 +36,13 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 <div class="meta"><div><strong>Checklist</strong><span id="metaTodo"></span></div><div><strong>Clock</strong><span id="metaClock"></span></div></div>
 <p class="small">This is a browser preview, not a photo of the running device. Text uses browser fonts with the firmware's line metrics, so widths differ slightly. The firmware is experimental; validate it with ESPHome before flashing.</p>
 </section></div>
+<section class="how" aria-label="How it works">
+<div><strong>One list per daypart</strong><span>Morning, midday and evening each get up to five tasks. The device wakes at each start and resets that list once a day.</span></div>
+<div><strong>Managed in Home Assistant</strong><span>Tasks live in normal HA to-do lists: add, rename and tick them from the dashboard, the app or by voice.</span></div>
+<div><strong>Sleeps between dayparts</strong><span>Deep sleep saves the battery. The side button wakes it any time, and the last image stays on the e-paper.</span></div>
+<div><strong>Done stays done</strong><span>A finished list is locked, so nothing gets unticked by accident. German or English, switched in HA.</span></div>
+</section>
+<footer class="small">Experimental: both firmware files compile with ESPHome 2026.10 but are not yet tested on hardware. MIT licensed. <a href="https://github.com/3DJupp/3310-eink#readme">Read the full README</a>.</footer>
 </main>
 <script>
 // The screen is drawn as an SVG with a 200x200 viewBox using the same pixel
