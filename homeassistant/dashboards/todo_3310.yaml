@@ -5,7 +5,7 @@
 # homeassistant/packages/todo_3310.yaml.
 title: Checklist
 path: todo_3310
-icon: mdi:checklist
+icon: mdi:format-list-checks
 type: sections
 max_columns: 4
 badges:
