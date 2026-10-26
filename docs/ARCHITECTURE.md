@@ -13,10 +13,10 @@ Retained JSON object with this shape:
 ```json
 {
   "version": 1,
-  "labels": ["Pflanzen gießen", "Post holen", "Wäsche aufhängen", "Küche aufräumen", "Lesen"],
+  "labels": ["Water plants", "Get the mail", "Hang up laundry", "Tidy the kitchen", "Read"],
   "hours": [6, 12, 18],
   "minutes": [0, 0, 0],
-  "messages": ["Guten Morgen", "Mittagszeit", "Bis später"]
+  "messages": ["Good morning", "Lunchtime", "See you later"]
 }
 ```
 
@@ -40,6 +40,8 @@ The current firmware supports exactly five labels and three schedule slots. The 
 ## Wakeup and task behavior
 
 The schedule has three daily slots. The current reset behavior resets all task statuses at the first schedule slot each day. Daypart-specific task filtering is not implemented. The display order is rebuilt at boot/wakeup so unfinished tasks appear before completed tasks, then remains stable while the device is awake.
+
+Once all five tasks are done the list is locked on the device: PRESS shows the finish card again instead of unchecking a task. The TOP button can still undo the most recent toggle, and the morning reset or a command from Home Assistant reopens tasks.
 
 ## Conflict handling: known gap
 

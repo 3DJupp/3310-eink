@@ -104,12 +104,12 @@ display:
       if (now.is_valid()) {
         it.printf(100, 47, id(font_large), COLOR_ON, TextAlign::TOP_CENTER, "%02d:%02d", now.hour, now.minute);
         it.printf(100, 126, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "%02d.%02d.%04d", now.day_of_month, now.month, now.year);
-        const char *days[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+        const char *days[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
         it.printf(100, 148, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "%s", days[now.day_of_week % 7]);
       } else {
-        it.print(100, 76, id(font_medium), COLOR_ON, TextAlign::TOP_CENTER, "ZEIT SYNC...");
+        it.print(100, 76, id(font_medium), COLOR_ON, TextAlign::TOP_CENTER, "TIME SYNC...");
       }
       it.line(8, 176, 192, 176, COLOR_ON);
-      it.print(100, 183, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "DAUERBETRIEB");
+      it.print(100, 183, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "ALWAYS ON");
 
 # This variant intentionally has no deep_sleep component: keep it powered by USB / adapter.
