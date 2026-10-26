@@ -350,17 +350,17 @@ globals:
   # Each daypart keeps up to five labels, newline-separated.
   - id: slot_labels_0
     type: std::string
-    initial_value: '"Zähne putzen\nMedikamente nehmen\nAnziehen\nSchultasche packen"'
+    initial_value: '"Z\u00E4hne putzen\nMedikamente nehmen\nAnziehen\nSchultasche packen"'
     restore_value: yes
     max_restore_data_length: 254
   - id: slot_labels_1
     type: std::string
-    initial_value: '"Pflanzen gießen\nPost holen\nWäsche aufhängen"'
+    initial_value: '"Pflanzen gie\u00DFen\nPost holen\nW\u00E4sche aufh\u00E4ngen"'
     restore_value: yes
     max_restore_data_length: 254
   - id: slot_labels_2
     type: std::string
-    initial_value: '"Küche aufräumen\nZähne putzen\nLesen"'
+    initial_value: '"K\u00FCche aufr\u00E4umen\nZ\u00E4hne putzen\nLesen"'
     restore_value: yes
     max_restore_data_length: 254
   - id: slot_title_0
@@ -378,11 +378,11 @@ globals:
   # Shown on the finish card of the same daypart.
   - id: wake_message_0
     type: std::string
-    initial_value: '"Schönen Tag!"'
+    initial_value: '"Sch\u00F6nen Tag!"'
     restore_value: yes
   - id: wake_message_1
     type: std::string
-    initial_value: '"Schönen Nachmittag!"'
+    initial_value: '"Sch\u00F6nen Nachmittag!"'
     restore_value: yes
   - id: wake_message_2
     type: std::string
@@ -622,6 +622,8 @@ script:
           sleep_duration: !lambda "return id(next_sleep_ms);"
 
 # Include printable ASCII plus German umlauts and euro; glyphs is an explicit character set here.
+# Keep this file pure ASCII: umlauts are written as \u escapes (YAML in the glyph lists, C++ in
+# the lambdas and initial values), because some ESPHome setups fail to parse raw UTF-8.
 font:
   - file: "fonts/segoeuithibd.ttf"
     id: font_xs
@@ -629,21 +631,21 @@ font:
     glyphs:
       - " "
       - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      - "äöüÄÖÜß€"
+      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
   - file: "fonts/segoeuithibd.ttf"
     id: font_sm
     size: 12
     glyphs:
       - " "
       - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      - "äöüÄÖÜß€"
+      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
   - file: "fonts/segoeuithibd.ttf"
     id: font_md
     size: 15
     glyphs:
       - " "
       - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      - "äöüÄÖÜß€"
+      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
 
 display:
   - platform: waveshare_epaper
@@ -724,10 +726,10 @@ display:
       const bool de = id(ui_de);
       const char *t_all_done = de ? "Alles erledigt!" : "All done!";
       const char *t_nothing = de ? "Nichts zu tun" : "Nothing to do";
-      const char *t_select = de ? "AUF/AB: WÄHLEN" : "UP/DOWN: SELECT";
-      const char *t_ok = de ? "DRÜCKEN: OK" : "PRESS: OK";
-      const char *t_undo = de ? "OBEN: ZURÜCK" : "TOP: UNDO";
-      const char *t_next = de ? "NÄCHSTE %02d:%02d" : "NEXT %02d:%02d";
+      const char *t_select = de ? "AUF/AB: W\u00C4HLEN" : "UP/DOWN: SELECT";
+      const char *t_ok = de ? "DR\u00DCCKEN: OK" : "PRESS: OK";
+      const char *t_undo = de ? "OBEN: ZUR\u00DCCK" : "TOP: UNDO";
+      const char *t_next = de ? "N\u00C4CHSTE %02d:%02d" : "NEXT %02d:%02d";
       const char *t_wake = de ? "SEITE: WECKEN" : "SIDE: WAKE";
       const char *t_batt_low = de ? "!! AKKU SCHWACH !!" : "!! BATTERY LOW !!";
       const char *t_batt_empty = de ? "AKKU LEER - LADEN" : "BATTERY EMPTY - CHARGE";
@@ -747,7 +749,7 @@ display:
       // above the separator line instead of touching it.
       const std::string titles[3] = {id(slot_title_0), id(slot_title_1), id(slot_title_2)};
       std::string title = titles[slot];
-      // Uppercase ASCII and the UTF-8 umlauts ä/ö/ü (0xC3 0xA4.. -> 0xC3 0x84..).
+      // Uppercase ASCII and the UTF-8 umlauts ae/oe/ue (0xC3 0xA4.. -> 0xC3 0x84..).
       for (size_t i = 0; i < title.size(); i++) {
         const unsigned char c = title[i];
         if (c == 0xC3 && i + 1 < title.size() && ((unsigned char) title[i + 1] == 0xA4 || (unsigned char) title[i + 1] == 0xB6 || (unsigned char) title[i + 1] == 0xBC)) title[++i] -= 0x20;
