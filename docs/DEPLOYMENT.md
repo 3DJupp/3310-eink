@@ -1,14 +1,26 @@
 # Deployment guide
 
-This guide covers the current experimental v10 integration. Back up your ESPHome and Home Assistant configuration before testing.
+This guide covers the current experimental integration. Back up your ESPHome and Home Assistant configuration before testing.
 
 ## Prerequisites
 
-- Home Assistant with access to its configuration directory
-- ESPHome Dashboard/add-on or ESPHome CLI
+- Home Assistant 2024.10 or newer with access to its configuration directory
+- ESPHome Dashboard/add-on or ESPHome CLI (both firmware files compile with ESPHome 2026.10)
 - MQTT broker reachable from Home Assistant and the CoreInk (for example, Mosquitto)
 - M5Stack CoreInk and a recovery path to previously working firmware
-- Local Wi-Fi credentials and ESPHome API encryption key
+- Local Wi-Fi credentials and one ESPHome API encryption key per device
+
+## Create the to-do lists
+
+In Home Assistant open Settings → Devices & services → Add integration → **Local To-do** and create three lists with exactly these names:
+
+| List name           | Entity ID                 | Shown on the CoreInk |
+|---------------------|---------------------------|----------------------|
+| `todo_3310 Morning` | `todo.todo_3310_morning`  | from the morning start |
+| `todo_3310 Midday`  | `todo.todo_3310_midday`   | from the midday start |
+| `todo_3310 Evening` | `todo.todo_3310_evening`  | from the evening start |
+
+If HA generated different entity IDs, rename them in the entity settings. Add up to five tasks per list; further items stay in HA but are not shown on the device. You can rename the lists' display names later, as long as the entity IDs stay the same.
 
 ## Install the Home Assistant package
 
@@ -21,36 +33,47 @@ This guide covers the current experimental v10 integration. Back up your ESPHome
    ```
    If `homeassistant:` already exists, merge the option into it rather than adding a duplicate key.
 4. Validate the Home Assistant configuration and restart.
-5. Search Developer Tools → States for `todo_3310` entities. Exact entity IDs can vary with HA version and entity registry history.
+5. Search Developer Tools → States for `todo_3310` entities.
 
-The package defines five task labels and completion helpers, three wake times and messages, MQTT telemetry, config publishing, task-state synchronization, and a daily reset at wake slot 0. Review that reset behavior before relying on tasks that should not reset each morning.
+The package defines daypart start times, titles and finish messages, MQTT telemetry, an "active list" sensor, the scripts that send config and list state to the device, and automations for syncing and the daily reset of each list at its daypart start.
+
+### Upgrading from the five-task version
+
+The per-task helpers `input_text.todo_3310_task_<n>_label` and `input_boolean.todo_3310_task_<n>_done` are gone. Copy your tasks into the new to-do lists, then remove the orphaned helpers in Settings → Devices & services → Entities. The old retained topics `todo_3310/command/task/<n>/done` and `todo_3310/state/task/<n>/done` are no longer used and can be cleared on the broker. The ESPHome secret `coreink_bathroom_todo__encryption_key` is now called `todo_3310_api_key`.
 
 ## Add the dashboard
 
-Create a manual/YAML dashboard and paste `homeassistant/dashboards/todo_3310.yaml`. Check all referenced entities; adjust IDs if your instance generated different ones.
+Settings → Dashboards → Add dashboard → New dashboard from scratch. Open it, choose the pencil, then the three-dot menu → Raw configuration editor, and paste `homeassistant/dashboards/todo_3310.yaml`. It uses only built-in cards: one to-do card per daypart with its start time, device status tiles and the schedule and text helpers.
 
 ## Configure ESPHome
 
-1. Copy `esphome/coreink_todo_3310.yaml` into your ESPHome configuration directory.
-2. Copy the key names from `examples/secrets.example.yaml` into your local `secrets.yaml`, then replace every example value. Never commit the real secrets file.
-3. Ensure the MQTT broker hostname/IP is reachable from the CoreInk network.
-4. Run ESPHome Validate / `esphome config <file.yaml>` and fix all errors before flashing.
-5. After boot, check the MQTT topics and confirm `todo_3310/state/config_applied` is published.
+1. Copy `esphome/todo_3310.yaml` into your ESPHome configuration directory.
+2. Put the font file `segoeuithibd.ttf` into a `fonts/` folder next to it, or change the three `font:` entries to a font you have (for example `gfonts://Roboto`). Layout spacing is tuned for Segoe UI metrics.
+3. Copy the key names from `examples/secrets.example.yaml` into your local `secrets.yaml`, then replace every example value. Never commit the real secrets file.
+4. Check the `timezone` substitution (default `Europe/Berlin`).
+5. Ensure the MQTT broker hostname/IP is reachable from the CoreInk network.
+6. Run ESPHome Validate / `esphome config todo_3310.yaml` and fix all errors before flashing.
+7. After boot, check the MQTT topics and confirm `todo_3310/state/config_applied` is published.
+
+`esphome/clock_3310.yaml` needs only Wi-Fi and `clock_3310_api_key`; its font comes from Google Fonts.
 
 ## MQTT topics
 
-- `todo_3310/config`: retained JSON settings (labels, hours, minutes, messages)
-- `todo_3310/command/task/<0..4>/done`: retained task-state commands from HA
-- `todo_3310/state/task/<0..4>/done`: task-state reports from device
+- `todo_3310/config`: retained JSON settings (per daypart: title, start time, message, task labels)
+- `todo_3310/command/slot/<0..2>`: retained list state from HA, consumed by the device
+- `todo_3310/state/slot/<0..2>`: list state reports from the device
 - `todo_3310/state/availability`: online/offline
-- `todo_3310/state/last_seen`: last contact
+- `todo_3310/state/last_seen`, `todo_3310/state/active_slot`: last contact and shown daypart
 - `todo_3310/state/battery_voltage`, `todo_3310/state/battery_percent`: battery telemetry
 - `todo_3310/state/seconds_to_wakeup`: snapshot calculated before sleep
+
+See [Architecture](ARCHITECTURE.md) for payloads and sync rules.
 
 ## Safety and troubleshooting
 
 - Do not use a public MQTT broker; use authentication and limit access to your local network.
-- If MQTT config changes while the CoreInk sleeps, the device will apply the retained payload only on its next wake/connect.
+- If the lists change while the CoreInk sleeps, the device applies them on its next wake/connect. Press the side button to wake it right away.
+- If the device shows the default example tasks, it has not received a config yet: check `todo_3310/config` on the broker and the HA automation trace of "todo_3310 - Send config to CoreInk".
 - If HA entities are missing, validate the package, restart HA and inspect logs and the entity registry.
-- If firmware validation fails, do not flash; check ESPHome version compatibility, MQTT callbacks and JSON lambda code.
-- The integration is experimental and has not yet been confirmed by a real ESPHome build and end-to-end hardware test.
+- If firmware validation fails, do not flash; check the ESPHome version and the compile log.
+- The integration is experimental and has not yet been confirmed by an end-to-end hardware test.

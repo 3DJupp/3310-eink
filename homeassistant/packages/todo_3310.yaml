@@ -1,29 +1,30 @@
 # todo_3310 - Home Assistant package
 # Copy to config/packages/todo_3310.yaml and enable packages in configuration.yaml.
+#
+# Tasks live in three Home Assistant to-do lists, one per daypart. Create them once in
+# Settings -> Devices & services -> Add integration -> "Local To-do" with these names:
+#   todo_3310 Morning  -> todo.todo_3310_morning
+#   todo_3310 Midday   -> todo.todo_3310_midday
+#   todo_3310 Evening  -> todo.todo_3310_evening
+# The first five items of each list are shown on the CoreInk during that daypart.
+
 input_text:
-  todo_3310_task_0_label: {name: "todo_3310 Task 1", initial: "Water plants", max: 32}
-  todo_3310_task_1_label: {name: "todo_3310 Task 2", initial: "Get the mail", max: 32}
-  todo_3310_task_2_label: {name: "todo_3310 Task 3", initial: "Hang up laundry", max: 32}
-  todo_3310_task_3_label: {name: "todo_3310 Task 4", initial: "Tidy the kitchen", max: 32}
-  todo_3310_task_4_label: {name: "todo_3310 Task 5", initial: "Read", max: 32}
+  todo_3310_slot_0_title: {name: "todo_3310 Morning title", initial: "Morning", max: 14}
+  todo_3310_slot_1_title: {name: "todo_3310 Midday title", initial: "Midday", max: 14}
+  todo_3310_slot_2_title: {name: "todo_3310 Evening title", initial: "Evening", max: 14}
   todo_3310_wake_0_message: {name: "todo_3310 Morning message", initial: "Good morning", max: 32}
   todo_3310_wake_1_message: {name: "todo_3310 Midday message", initial: "Lunchtime", max: 32}
   todo_3310_wake_2_message: {name: "todo_3310 Evening message", initial: "See you later", max: 32}
 
 input_boolean:
-  todo_3310_task_0_done: {name: "todo_3310 Task 1 done"}
-  todo_3310_task_1_done: {name: "todo_3310 Task 2 done"}
-  todo_3310_task_2_done: {name: "todo_3310 Task 3 done"}
-  todo_3310_task_3_done: {name: "todo_3310 Task 4 done"}
-  todo_3310_task_4_done: {name: "todo_3310 Task 5 done"}
   todo_3310_config_pending:
     name: "todo_3310 Config pending"
     icon: mdi:cloud-upload-outline
 
 input_datetime:
-  todo_3310_wake_0: {name: "todo_3310 Morning wakeup", has_date: false, has_time: true, initial: "06:00:00"}
-  todo_3310_wake_1: {name: "todo_3310 Midday wakeup", has_date: false, has_time: true, initial: "12:00:00"}
-  todo_3310_wake_2: {name: "todo_3310 Evening wakeup", has_date: false, has_time: true, initial: "18:00:00"}
+  todo_3310_wake_0: {name: "todo_3310 Morning start", has_date: false, has_time: true, initial: "06:00:00"}
+  todo_3310_wake_1: {name: "todo_3310 Midday start", has_date: false, has_time: true, initial: "12:00:00"}
+  todo_3310_wake_2: {name: "todo_3310 Evening start", has_date: false, has_time: true, initial: "18:00:00"}
 
 mqtt:
   sensor:
@@ -42,11 +43,13 @@ mqtt:
     - name: "todo_3310 Last Seen"
       unique_id: todo_3310_mqtt_last_seen
       state_topic: todo_3310/state/last_seen
+      icon: mdi:clock-check-outline
     - name: "todo_3310 Seconds To Wakeup"
       unique_id: todo_3310_mqtt_seconds_to_wakeup
       state_topic: todo_3310/state/seconds_to_wakeup
       unit_of_measurement: s
       state_class: measurement
+      icon: mdi:sleep
   binary_sensor:
     - name: "todo_3310 Online"
       unique_id: todo_3310_mqtt_availability
@@ -56,110 +59,214 @@ mqtt:
       device_class: connectivity
       off_delay: 90
 
+template:
+  - sensor:
+      # Which daypart list the CoreInk shows right now, derived from the three start times.
+      - name: "todo_3310 Active list"
+        unique_id: todo_3310_active_list
+        icon: mdi:calendar-clock
+        state: >-
+          {% set n = now().hour * 60 + now().minute %}
+          {% set ns = namespace(active=-1, best=-1, latest=0, latest_m=-1) %}
+          {% for i in range(3) %}
+            {% set t = states('input_datetime.todo_3310_wake_' ~ i) %}
+            {% set m = t[0:2] | int(0) * 60 + t[3:5] | int(0) %}
+            {% if m <= n and m > ns.best %}{% set ns.active = i %}{% set ns.best = m %}{% endif %}
+            {% if m > ns.latest_m %}{% set ns.latest = i %}{% set ns.latest_m = m %}{% endif %}
+          {% endfor %}
+          {% set slot = ns.active if ns.active >= 0 else ns.latest %}
+          {{ states('input_text.todo_3310_slot_' ~ slot ~ '_title') }}
+
+script:
+  # Labels, titles, start times and messages for all three dayparts as one retained message.
+  todo_3310_publish_config:
+    alias: "todo_3310 - Publish config"
+    mode: queued
+    sequence:
+      - action: todo.get_items
+        target:
+          entity_id: [todo.todo_3310_morning, todo.todo_3310_midday, todo.todo_3310_evening]
+        data:
+          status: [needs_action, completed]
+        response_variable: lists
+      - action: mqtt.publish
+        data:
+          topic: todo_3310/config
+          retain: true
+          qos: 1
+          payload: >-
+            {% set ids = ['todo.todo_3310_morning', 'todo.todo_3310_midday', 'todo.todo_3310_evening'] %}
+            {% set ns = namespace(slots=[]) %}
+            {% for i in range(3) %}
+              {% set items = (lists[ids[i]]['items'] if ids[i] in lists else [])[:5] %}
+              {% set t = states('input_datetime.todo_3310_wake_' ~ i) %}
+              {% set ns.slots = ns.slots + [{
+                'title': states('input_text.todo_3310_slot_' ~ i ~ '_title'),
+                'hour': t[0:2] | int([6, 12, 18][i]),
+                'minute': t[3:5] | int(0),
+                'message': states('input_text.todo_3310_wake_' ~ i ~ '_message'),
+                'tasks': items | map(attribute='summary') | map('truncate', 32, true, '', 0) | list
+              }] %}
+            {% endfor %}
+            {{ {'version': 2, 'slots': ns.slots} | tojson }}
+
+  # Done states of one list, sent after a change in HA. The CoreInk applies it on its next
+  # wake by label name and then clears the retained message.
+  todo_3310_push_list:
+    alias: "todo_3310 - Push list state to CoreInk"
+    mode: queued
+    fields:
+      slot:
+        description: "Daypart index 0..2"
+        example: 0
+    sequence:
+      - variables:
+          entity: "{{ ['todo.todo_3310_morning', 'todo.todo_3310_midday', 'todo.todo_3310_evening'][slot | int] }}"
+      - action: todo.get_items
+        target: {entity_id: "{{ entity }}"}
+        data:
+          status: [needs_action, completed]
+        response_variable: lists
+      - variables:
+          items: "{{ lists[entity]['items'][:5] if entity in lists else [] }}"
+      - action: mqtt.publish
+        data:
+          topic: "todo_3310/command/slot/{{ slot | int }}"
+          retain: true
+          qos: 1
+          payload: >-
+            {% set ns = namespace(labels=[], done=[]) %}
+            {% for item in items %}
+              {% set ns.labels = ns.labels + [item.summary | truncate(32, true, '', 0)] %}
+              {% set ns.done = ns.done + [item.status == 'completed'] %}
+            {% endfor %}
+            {{ {'labels': ns.labels, 'done': ns.done} | tojson }}
+
 automation:
   - id: todo_3310_publish_config
     alias: "todo_3310 - Send config to CoreInk"
     mode: restart
-    trigger:
-      - platform: homeassistant
+    triggers:
+      - trigger: homeassistant
         event: start
-      - platform: state
+      - trigger: state
         entity_id:
-          - input_text.todo_3310_task_0_label
-          - input_text.todo_3310_task_1_label
-          - input_text.todo_3310_task_2_label
-          - input_text.todo_3310_task_3_label
-          - input_text.todo_3310_task_4_label
+          - todo.todo_3310_morning
+          - todo.todo_3310_midday
+          - todo.todo_3310_evening
+          - input_text.todo_3310_slot_0_title
+          - input_text.todo_3310_slot_1_title
+          - input_text.todo_3310_slot_2_title
           - input_text.todo_3310_wake_0_message
           - input_text.todo_3310_wake_1_message
           - input_text.todo_3310_wake_2_message
           - input_datetime.todo_3310_wake_0
           - input_datetime.todo_3310_wake_1
           - input_datetime.todo_3310_wake_2
-    action:
-      - service: input_boolean.turn_on
-        target: {entity_id: input_boolean.todo_3310_config_pending}
-      - service: mqtt.publish
-        data:
-          topic: todo_3310/config
-          retain: true
-          qos: 1
-          payload: >-
-            {{ {'version': 1,
-              'labels': [states('input_text.todo_3310_task_0_label'), states('input_text.todo_3310_task_1_label'), states('input_text.todo_3310_task_2_label'), states('input_text.todo_3310_task_3_label'), states('input_text.todo_3310_task_4_label')],
-              'hours': [states('input_datetime.todo_3310_wake_0')[0:2]|int(6), states('input_datetime.todo_3310_wake_1')[0:2]|int(12), states('input_datetime.todo_3310_wake_2')[0:2]|int(18)],
-              'minutes': [states('input_datetime.todo_3310_wake_0')[3:5]|int(0), states('input_datetime.todo_3310_wake_1')[3:5]|int(0), states('input_datetime.todo_3310_wake_2')[3:5]|int(0)],
-              'messages': [states('input_text.todo_3310_wake_0_message'), states('input_text.todo_3310_wake_1_message'), states('input_text.todo_3310_wake_2_message')] } | tojson }}
+      # Renaming or reordering items does not change a to-do entity's state, so also
+      # refresh regularly. The CoreInk ignores a config that did not change.
+      - trigger: time_pattern
+        minutes: "/10"
+    actions:
       - delay: "00:00:02"
-      - service: input_boolean.turn_off
+      - action: input_boolean.turn_on
+        target: {entity_id: input_boolean.todo_3310_config_pending}
+      - action: script.todo_3310_publish_config
+      - action: input_boolean.turn_off
         target: {entity_id: input_boolean.todo_3310_config_pending}
 
-  - id: todo_3310_daily_reset
-    alias: "todo_3310 - Reset daily state in the morning"
-    mode: single
-    trigger:
-      - platform: time
-        at: input_datetime.todo_3310_wake_0
-    action:
-      - service: input_boolean.turn_off
-        target:
-          entity_id:
-            - input_boolean.todo_3310_task_0_done
-            - input_boolean.todo_3310_task_1_done
-            - input_boolean.todo_3310_task_2_done
-            - input_boolean.todo_3310_task_3_done
-            - input_boolean.todo_3310_task_4_done
-
-  - id: todo_3310_publish_manual_task_state
-    alias: "todo_3310 - Send HA task state to CoreInk"
+  # Only changes made by a person (dashboard, app, voice) are pushed. Changes written by
+  # the automations below come from the device or the daily reset and must not echo back.
+  - id: todo_3310_push_user_changes
+    alias: "todo_3310 - Send list changes to CoreInk"
     mode: queued
-    trigger:
-      - platform: state
+    triggers:
+      - trigger: state
         entity_id:
-          - input_boolean.todo_3310_task_0_done
-          - input_boolean.todo_3310_task_1_done
-          - input_boolean.todo_3310_task_2_done
-          - input_boolean.todo_3310_task_3_done
-          - input_boolean.todo_3310_task_4_done
-    variables:
-      slot: "{{ {'input_boolean.todo_3310_task_0_done': 0, 'input_boolean.todo_3310_task_1_done': 1, 'input_boolean.todo_3310_task_2_done': 2, 'input_boolean.todo_3310_task_3_done': 3, 'input_boolean.todo_3310_task_4_done': 4}.get(trigger.entity_id, -1) }}"
-      payload_value: "{{ 'ON' if trigger.to_state.state == 'on' else 'OFF' }}"
-    action:
-      - service: mqtt.publish
+          - todo.todo_3310_morning
+          - todo.todo_3310_midday
+          - todo.todo_3310_evening
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.to_state.context.user_id is not none }}"
+    actions:
+      - delay: "00:00:02"
+      - action: script.todo_3310_push_list
         data:
-          topic: "{{ 'todo_3310/command/task/' ~ slot ~ '/done' }}"
-          payload: "{{ payload_value }}"
-          retain: true
-          qos: 1
+          slot: "{{ ['todo.todo_3310_morning', 'todo.todo_3310_midday', 'todo.todo_3310_evening'].index(trigger.entity_id) }}"
 
-  - id: todo_3310_receive_task_state
-    alias: "todo_3310 - Apply device task state"
+  - id: todo_3310_receive_list_state
+    alias: "todo_3310 - Apply CoreInk list state"
     mode: queued
-    trigger:
-      - platform: mqtt
-        topic: "todo_3310/state/task/+/done"
+    triggers:
+      - trigger: mqtt
+        topic: "todo_3310/state/slot/+"
     variables:
-      slot: "{{ trigger.topic.split('/')[3] | int(-1) }}"
-      is_done: "{{ trigger.payload == 'ON' }}"
-    action:
-      - choose:
-          - conditions: "{{ slot == 0 }}"
-            sequence:
-              - service: "input_boolean.turn_{{ 'on' if is_done else 'off' }}"
-                target: {entity_id: input_boolean.todo_3310_task_0_done}
-          - conditions: "{{ slot == 1 }}"
-            sequence:
-              - service: "input_boolean.turn_{{ 'on' if is_done else 'off' }}"
-                target: {entity_id: input_boolean.todo_3310_task_1_done}
-          - conditions: "{{ slot == 2 }}"
-            sequence:
-              - service: "input_boolean.turn_{{ 'on' if is_done else 'off' }}"
-                target: {entity_id: input_boolean.todo_3310_task_2_done}
-          - conditions: "{{ slot == 3 }}"
-            sequence:
-              - service: "input_boolean.turn_{{ 'on' if is_done else 'off' }}"
-                target: {entity_id: input_boolean.todo_3310_task_3_done}
-          - conditions: "{{ slot == 4 }}"
-            sequence:
-              - service: "input_boolean.turn_{{ 'on' if is_done else 'off' }}"
-                target: {entity_id: input_boolean.todo_3310_task_4_done}
+      slot: "{{ trigger.topic.split('/')[-1] | int(-1) }}"
+      entity: "{{ ['todo.todo_3310_morning', 'todo.todo_3310_midday', 'todo.todo_3310_evening'][slot] if 0 <= slot <= 2 else '' }}"
+      device_labels: "{{ trigger.payload_json.labels | default([]) }}"
+      device_done: "{{ trigger.payload_json.done | default([]) }}"
+    conditions:
+      - condition: template
+        value_template: "{{ entity != '' and device_labels | count > 0 }}"
+    actions:
+      - action: todo.get_items
+        target: {entity_id: "{{ entity }}"}
+        data:
+          status: [needs_action, completed]
+        response_variable: lists
+      - repeat:
+          for_each: "{{ lists[entity]['items'][:5] if entity in lists else [] }}"
+          sequence:
+            - variables:
+                label: "{{ repeat.item.summary | truncate(32, true, '', 0) }}"
+                wanted: >-
+                  {%- if label in device_labels -%}
+                    {{ 'completed' if device_done[device_labels.index(label)] else 'needs_action' }}
+                  {%- else -%}{{ repeat.item.status }}{%- endif -%}
+            - if:
+                - condition: template
+                  value_template: "{{ wanted != repeat.item.status }}"
+              then:
+                - action: todo.update_item
+                  target: {entity_id: "{{ entity }}"}
+                  data:
+                    item: "{{ repeat.item.uid }}"
+                    status: "{{ wanted }}"
+
+  # The CoreInk resets the active daypart list on its own when it wakes; mirror that here
+  # and drop any unapplied command for the list so it cannot re-check yesterday's tasks.
+  - id: todo_3310_daypart_reset
+    alias: "todo_3310 - Reset list at daypart start"
+    mode: queued
+    triggers:
+      - trigger: time
+        at: input_datetime.todo_3310_wake_0
+        id: "0"
+      - trigger: time
+        at: input_datetime.todo_3310_wake_1
+        id: "1"
+      - trigger: time
+        at: input_datetime.todo_3310_wake_2
+        id: "2"
+    variables:
+      entity: "{{ ['todo.todo_3310_morning', 'todo.todo_3310_midday', 'todo.todo_3310_evening'][trigger.id | int] }}"
+    actions:
+      - action: mqtt.publish
+        data:
+          topic: "todo_3310/command/slot/{{ trigger.id }}"
+          payload: ""
+          retain: true
+      - action: todo.get_items
+        target: {entity_id: "{{ entity }}"}
+        data:
+          status: completed
+        response_variable: lists
+      - repeat:
+          for_each: "{{ lists[entity]['items'] if entity in lists else [] }}"
+          sequence:
+            - action: todo.update_item
+              target: {entity_id: "{{ entity }}"}
+              data:
+                item: "{{ repeat.item.uid }}"
+                status: needs_action

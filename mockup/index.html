@@ -7,77 +7,120 @@
 :root{color-scheme:light;--ink:#171717;--paper:#f3f1e7;--muted:#69685f}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 15%,#faf9f4,#d9d6cb 72%);color:var(--ink);font:16px/1.45 system-ui,sans-serif;display:grid;place-items:center;padding:24px}
 main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,3vw,2rem);margin:0 0 6px;letter-spacing:-.03em}header p{margin:0;color:#56554e}.firmware-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.firmware-links a{display:inline-block;color:#222;text-decoration:none;border:1px solid #77766e;border-radius:10px;padding:8px 12px;background:#ffffff80;font-weight:650;font-size:.92rem}.firmware-links a:hover{text-decoration:underline;background:#fff}
-.tabs{display:flex;gap:8px;margin:20px 0}.tabs button{font:inherit;font-weight:650;border:1px solid #77766e;border-radius:999px;padding:9px 16px;background:#ffffff80;color:#222;cursor:pointer}.tabs button[aria-pressed=true]{background:#222;color:#fff}
-.layout{display:grid;grid-template-columns:minmax(260px,350px) 1fr;gap:clamp(24px,5vw,54px);align-items:center}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.tabs button,.keys button{font:inherit;font-weight:650;border:1px solid #77766e;border-radius:999px;padding:9px 16px;background:#ffffff80;color:#222;cursor:pointer}.tabs button[aria-pressed=true]{background:#222;color:#fff}.tabs .sep{width:1px;background:#77766e80;margin:0 4px}
+.layout{display:grid;grid-template-columns:minmax(260px,350px) 1fr;gap:clamp(24px,5vw,54px);align-items:start}
 .device{width:100%;max-width:360px;aspect-ratio:360/500;margin:auto;background:linear-gradient(145deg,#fff 0%,#f5f5f5 68%,#e5e5e5 100%);border:1px solid #d2d2d2;border-radius:28px;padding:19% 12% 20%;box-shadow:0 18px 38px #0002,inset 0 1px 1px #fff;position:relative}
 .device:before{content:"M5";position:absolute;left:0;right:0;bottom:4%;text-align:center;color:#e9e9e9;font:800 clamp(30px,6vw,52px)/1 system-ui;letter-spacing:.04em;text-shadow:1px 1px 0 #fff,-1px -1px 0 #c9c9c9}.device:after{content:"";position:absolute;top:0;left:23%;width:54%;height:4%;border:1px solid #ddd;border-top:0;border-radius:0 0 9px 9px;background:#f3f3f3}
 .screen{position:relative;width:100%;aspect-ratio:1;background:#c9c9c9;border:5px solid #e6e6e6;outline:1px solid #bdbdbd;border-radius:5px;box-shadow:inset 0 0 0 1px #b4b4b4,0 0 0 2px #f8f8f8;overflow:hidden}
 .screen svg{display:block;width:100%;height:100%}.screen text{font-family:"Segoe UI Semibold","Segoe UI",system-ui,sans-serif;font-weight:650}.screen rect,.screen line,.screen path{shape-rendering:crispEdges}
-.button{display:none}.screw{position:absolute;width:15%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fff 0 35%,#c8c8c8 39% 48%,#f4f4f4 54% 66%,#c6c6c6 72%,#eee 78%);box-shadow:inset 0 1px 3px #999}.screw.tl{top:2%;left:2%}.screw.tr{top:2%;right:2%}.screw.bl{bottom:2%;left:2%}.screw.br{bottom:2%;right:2%}
+.screw{position:absolute;width:15%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fff 0 35%,#c8c8c8 39% 48%,#f4f4f4 54% 66%,#c6c6c6 72%,#eee 78%);box-shadow:inset 0 1px 3px #999}.screw.tl{top:2%;left:2%}.screw.tr{top:2%;right:2%}.screw.bl{bottom:2%;left:2%}.screw.br{bottom:2%;right:2%}
+.keys{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px auto 0;max-width:360px}.keys button{padding:7px 13px;font-size:.88rem}.keys[hidden]{display:none}
 .details h2{font-size:1.12rem;margin:0 0 10px}.details p{color:#555}.details ul{padding-left:19px;margin:12px 0}.details li{margin:8px 0}.small{font-size:.85rem;color:#5b5a53}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.meta div{border:1px solid #ffffffc7;background:#ffffff65;border-radius:12px;padding:10px 12px}.meta strong{display:block;font-size:.82rem}.meta span{font-size:.8rem;color:#595850}
-@media(max-width:620px){body{padding:18px}.layout{grid-template-columns:1fr;max-width:390px;margin:auto}.device{max-width:300px}.details{padding:0 4px}.meta{grid-template-columns:1fr 1fr}}
-
+@media(max-width:620px){body{padding:16px}.layout{grid-template-columns:1fr;max-width:390px;margin:auto}.device{max-width:300px}.details{padding:0 4px}}
 </style>
 </head>
 <body><main>
-<header><h1>CoreInk · Checklist and clock</h1><p>Two simple views for the monochrome 200 × 200 pixel display.</p><nav class="firmware-links" aria-label="Download firmware"><a href="../esphome/todo_3310.yaml" download>Download YAML: checklist</a><a href="../esphome/clock_3310.yaml" download>Download YAML: clock</a></nav></header>
-<div class="tabs" role="group" aria-label="Firmware view"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button></div>
+<header><h1>CoreInk · Checklist and clock</h1><p>Two simple views for the monochrome 200 × 200 pixel display.</p>
+<nav class="firmware-links" aria-label="Firmware and project"><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/todo_3310.yaml">Firmware YAML: checklist</a><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/clock_3310.yaml">Firmware YAML: clock</a><a href="https://github.com/3DJupp/3310-eink">Project on GitHub</a></nav></header>
+<div class="tabs" role="group" aria-label="Firmware view"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button><span class="sep" aria-hidden="true"></span><span id="slotTabs" style="display:contents"></span></div>
 <div class="layout">
+<div>
 <section class="device" aria-label="M5Stack CoreInk device preview">
-<div class="screen" id="screen" role="img" aria-label="Display preview, 200 × 200 pixels"></div><i class="screw tl" aria-hidden="true"></i><i class="screw tr" aria-hidden="true"></i><i class="screw bl" aria-hidden="true"></i><i class="screw br" aria-hidden="true"></i><div class="button" aria-hidden="true"></div>
+<div class="screen" id="screen" role="img" aria-label="Display preview, 200 × 200 pixels"></div><i class="screw tl" aria-hidden="true"></i><i class="screw tr" aria-hidden="true"></i><i class="screw bl" aria-hidden="true"></i><i class="screw br" aria-hidden="true"></i>
 </section>
-<section class="details"><h2 id="detailsTitle">Checklist · todo_3310</h2>
-<p id="detailsText">Example everyday tasks. The labels can be changed in the configuration.</p>
-<ul id="detailList"></ul>
-<div class="meta"><div><strong>Checklist</strong><span>Deep sleep · schedule</span></div><div><strong>Clock</strong><span>USB optional</span></div></div>
-<p class="small" id="note">This is a browser preview, not a photo of the running device. The firmware is experimental; validate it with ESPHome before flashing.</p>
+<div class="keys" id="keys" role="group" aria-label="Device buttons"><button data-key="up">▲ UP</button><button data-key="press">● PRESS</button><button data-key="down">▼ DOWN</button><button data-key="top">TOP · undo</button><button data-key="reset">Reset demo</button></div>
+</div>
+<section class="details"><h2 id="detailsTitle"></h2><p id="detailsText"></p><ul id="detailList"></ul>
+<div class="meta"><div><strong>Checklist</strong><span id="metaTodo"></span></div><div><strong>Clock</strong><span id="metaClock"></span></div></div>
+<p class="small">This is a browser preview, not a photo of the running device. Text uses browser fonts with the firmware's line metrics, so widths differ slightly. The firmware is experimental; validate it with ESPHome before flashing.</p>
 </section></div>
 </main>
 <script>
-const todoTab=document.getElementById('todoTab'),clockTab=document.getElementById('clockTab');
-function setMode(mode){const clock=mode==='clock';todoTab.setAttribute('aria-pressed',String(!clock));clockTab.setAttribute('aria-pressed',String(clock));
-renderScreen(clock);
-document.getElementById('detailsTitle').textContent=clock?'Clock · clock_3310':'Checklist · todo_3310';
-document.getElementById('detailsText').textContent=clock?'The clock shows the local time of this browser. It is meant to run on permanent power.':'Example everyday tasks. The labels can be changed in the configuration.';
-document.getElementById('detailList').innerHTML=clock?'<li>Shows time, date and weekday.</li><li>Meant for permanent power.</li><li>No deep sleep; the display refreshes regularly.</li><li>The preview uses the browser clock, not the clock of a connected device.</li>':'<li>Five example tasks with done state.</li><li>The screen shows status bar, title, tasks, progress and footer.</li><li>Once all tasks are done the list is locked: PRESS no longer unchecks tasks, TOP still undoes the last toggle.</li><li>Per-task times are not shown by the current firmware.</li><li>The full refresh after an RTC wakeup is still open and needs testing.</li>';
-document.querySelector('.meta div:first-child span').textContent=clock?'Not active':'Deep sleep · schedule';document.querySelector('.meta div:last-child span').textContent=clock?'Always on · no deep sleep':'USB optional';
-}
 // The screen is drawn as an SVG with a 200x200 viewBox using the same pixel
-// coordinates as the firmware lambdas, so it scales with the bezel instead of
-// mixing fixed CSS pixels with a fluid screen size.
+// coordinates as the firmware lambdas, so it scales with the bezel.
 const ON='#171717',OFF='#c9c9c9',pad=n=>String(n).padStart(2,'0');
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const box=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
 const frame=(x,y,w,h,c)=>`<rect x="${x+.5}" y="${y+.5}" width="${w-1}" height="${h-1}" fill="none" stroke="${c}"/>`;
 const ln=(x1,y1,x2,y2,c)=>`<line x1="${x1+.5}" y1="${y1+.5}" x2="${x2+.5}" y2="${y2+.5}" stroke="${c}" stroke-linecap="square"/>`;
-// ESPHome prints from the glyph top; the baseline sits about one font size lower.
-const txt=(x,y,size,c,t,align='start')=>`<text x="${x}" y="${y+size}" font-size="${size}" fill="${c}" text-anchor="${align}">${esc(t)}</text>`;
+// ESPHome prints from the top of the font's ascender; for Segoe UI the baseline sits
+// about 1.08 × the font size lower.
+const txt=(x,y,size,c,t,align='start')=>`<text x="${x}" y="${y+Math.round(size*1.08)}" font-size="${size}" fill="${c}" text-anchor="${align}">${esc(t)}</text>`;
 const svg=body=>`<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`;
-const demo={labels:['Water plants','Get the mail','Hang up laundry','Tidy the kitchen','Read'],done:[true,false,false,false,true],selected:1,order:[1,2,3,0,4],batt:87,bars:3};
+
+// One list per daypart, as configured in the Home Assistant to-do lists.
+const slots=[
+ {title:'Morning',start:[6,0],message:'Good morning',tasks:['Brush teeth','Take medication','Get dressed','Pack school bag']},
+ {title:'Midday',start:[12,0],message:'Lunchtime',tasks:['Water plants','Get the mail','Hang up laundry']},
+ {title:'Evening',start:[18,0],message:'See you later',tasks:['Tidy the kitchen','Brush teeth','Read','Lay out clothes']}];
+const st={slot:0,done:[0b01,0,0],order:[],selected:0,last:-1};
+const count=()=>slots[st.slot].tasks.length;
+const isDone=i=>(st.done[st.slot]>>i)&1;
+const complete=()=>{const all=(1<<count())-1;return (st.done[st.slot]&all)===all;};
+// Like refresh_view: open tasks first, then completed ones; fixed for the awake session.
+function wake(slot){st.slot=slot;st.last=-1;const n=count(),open=[],closed=[];
+for(let i=0;i<n;i++)(isDone(i)?closed:open).push(i);st.order=open.concat(closed);st.selected=n?(open.length?open[0]:st.order[0]):-1;}
+function activeSlotNow(){const d=new Date(),m=d.getHours()*60+d.getMinutes();let a=-1,b=-1;
+slots.forEach((s,i)=>{const sm=s.start[0]*60+s.start[1];if(sm<=m&&sm>b){a=i;b=sm;}});return a<0?2:a;}
+
 function todoSvg(){const now=new Date();let o=box(0,0,200,21,ON);
-[[5,14,4],[10,11,7],[15,8,10],[20,5,13]].forEach(([x,y,h],i)=>o+=(i<demo.bars?box:frame)(x,y,3,h,OFF));
-o+=txt(91,3,10,OFF,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')+txt(151,3,10,OFF,demo.batt+'%','end');
-o+=frame(160,4,26,13,OFF)+box(186,8,3,5,OFF)+box(162,6,Math.floor(demo.batt*22/100),9,OFF);
-const done=demo.done.filter(Boolean).length;
-o+=txt(7,25,20,ON,'TODO')+txt(193,27,15,ON,done+'/5','end')+ln(5,47,195,47,ON);
-demo.order.forEach((task,row)=>{const y=51+row*25,sel=task===demo.selected,fg=sel?OFF:ON;
+[[5,14,4],[10,11,7],[15,8,10],[20,5,13]].forEach(([x,y,h],i)=>o+=(i<3?box:frame)(x,y,3,h,OFF));
+o+=txt(91,3,10,OFF,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')+txt(151,3,10,OFF,'87%','end');
+o+=frame(160,4,26,13,OFF)+box(186,8,3,5,OFF)+box(162,6,19,9,OFF);
+const s=slots[st.slot],n=count();let done=0;for(let i=0;i<n;i++)done+=isDone(i);const fin=done===n;
+o+=txt(7,23,15,ON,s.title.toUpperCase())+txt(193,23,15,ON,done+'/'+n,'end')+ln(5,45,195,45,ON);
+if(!fin)st.order.forEach((task,row)=>{const y=49+row*25,sel=task===st.selected,fg=sel?OFF:ON;
 if(sel)o+=box(5,y,190,22,ON);o+=frame(10,y+3,15,15,fg);
-if(demo.done[task])o+=ln(12,y+10,16,y+14,fg)+ln(16,y+14,23,y+5,fg);
-o+=txt(32,y+2,12,fg,demo.labels[task]);
-if(demo.done[task])o+=`<line class="strike" x1="32.5" y1="${y+12.5}" y2="${y+12.5}" stroke="${fg}" stroke-linecap="square"/>`;else if(sel)o+=`<path d="M183 ${y+6}H191L187 ${y+14}Z" fill="${OFF}"/>`;});
-demo.order.forEach((task,i)=>o+=(demo.done[task]?box:frame)(8+i*38,180,34,7,ON));
-o+=box(0,188,200,12,ON)+txt(6,189,10,OFF,'UP/DOWN: SELECT')+txt(194,189,10,OFF,'PRESS: OK','end');
+if(isDone(task))o+=ln(12,y+10,16,y+14,fg)+ln(16,y+14,23,y+5,fg);
+o+=txt(32,y+2,12,fg,s.tasks[task]);
+if(isDone(task))o+=`<line class="strike" x1="32.5" y1="${y+12.5}" y2="${y+12.5}" stroke="${fg}" stroke-linecap="square"/>`;else if(sel)o+=`<path d="M183 ${y+6}H191L187 ${y+14}Z" fill="${OFF}"/>`;});
+st.order.forEach((task,i)=>{const x0=8+Math.floor(i*188/n),x1=8+Math.floor((i+1)*188/n)-4;o+=(isDone(task)?box:frame)(x0,175,x1-x0,6,ON);});
+const next=slots[(st.slot+1)%3];
+if(fin){o+=box(25,67,150,69,OFF)+frame(25,67,150,69,ON)+frame(28,70,144,63,ON)
++`<circle cx="100.5" cy="86.5" r="8" fill="none" stroke="${ON}"/>`+box(96,83,2,3,ON)+box(102,83,2,3,ON)
++ln(95,90,98,93,ON)+ln(98,93,102,93,ON)+ln(102,93,105,90,ON)
++txt(100,101,12,ON,n?'All done!':'Nothing to do','middle')+txt(100,117,10,ON,next.message,'middle');}
+o+=box(0,184,200,16,ON);
+if(fin)o+=txt(6,185,10,OFF,st.last>=0?'TOP: UNDO':'NEXT '+pad(next.start[0])+':'+pad(next.start[1]))+txt(194,185,10,OFF,'SIDE: WAKE','end');
+else o+=txt(6,185,10,OFF,'UP/DOWN: SELECT')+txt(194,185,10,OFF,'PRESS: OK','end');
 return svg(o);}
 function clockSvg(){const now=new Date();const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 return svg(box(0,0,200,22,ON)+txt(100,4,12,OFF,'CLOCK 3310','middle')
 +txt(100,47,34,ON,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')
 +txt(100,126,12,ON,pad(now.getDate())+'.'+pad(now.getMonth()+1)+'.'+now.getFullYear(),'middle')
 +txt(100,148,12,ON,days[now.getDay()],'middle')
-+ln(8,176,192,176,ON)+txt(100,183,12,ON,'ALWAYS ON','middle'));}
-let lastMinute=-1;
-function tickClock(){const now=new Date();if(now.getMinutes()===lastMinute)return;lastMinute=now.getMinutes();renderScreen(clockTab.getAttribute('aria-pressed')==='true');}
++ln(8,176,192,176,ON)+txt(100,181,12,ON,'ALWAYS ON','middle'));}
+
+// Button handling mirrors the firmware: a finished list ignores UP/DOWN/PRESS,
+// TOP undoes only the most recent toggle of the current session.
+function key(k){if(k==='reset'){st.done=[0b01,0,0];wake(st.slot);return render();}
+const n=count(),locked=complete();
+if(k==='top'){if(st.last<0)return;st.done[st.slot]^=1<<st.last;st.selected=st.last;st.last=-1;return render();}
+if(locked)return;const pos=st.order.indexOf(st.selected);
+if(k==='up')st.selected=st.order[(pos+n-1)%n];
+if(k==='down')st.selected=st.order[(pos+1)%n];
+if(k==='press'){st.done[st.slot]^=1<<st.selected;st.last=st.selected;}
+render();}
+
+const todoTab=document.getElementById('todoTab'),clockTab=document.getElementById('clockTab'),slotTabs=document.getElementById('slotTabs');
+let mode='todo';
+slotTabs.innerHTML=slots.map((s,i)=>`<button data-slot="${i}" aria-pressed="false">${s.title} ${pad(s.start[0])}:${pad(s.start[1])}</button>`).join('');
+function render(){const clock=mode==='clock';
+todoTab.setAttribute('aria-pressed',String(!clock));clockTab.setAttribute('aria-pressed',String(clock));
+slotTabs.querySelectorAll('button').forEach(b=>{b.hidden=clock;b.setAttribute('aria-pressed',String(+b.dataset.slot===st.slot));});
+document.getElementById('keys').hidden=clock;
+const sc=document.getElementById('screen');sc.innerHTML=clock?clockSvg():todoSvg();
 // Like the firmware's get_text_bounds call: each strike-through spans its measured label.
-function renderScreen(clock){const s=document.getElementById('screen');s.innerHTML=clock?clockSvg():todoSvg();
-s.querySelectorAll('line.strike').forEach(l=>{const t=l.previousElementSibling;l.setAttribute('x2',Math.min(32+t.getComputedTextLength(),190)+.5);});}
-todoTab.addEventListener('click',()=>setMode('todo'));clockTab.addEventListener('click',()=>setMode('clock'));setInterval(tickClock,1000);setMode('todo');
+sc.querySelectorAll('line.strike').forEach(l=>{const t=l.previousElementSibling;l.setAttribute('x2',Math.min(32+t.getComputedTextLength(),190)+.5);});
+document.getElementById('detailsTitle').textContent=clock?'Clock · clock_3310':'Checklist · todo_3310';
+document.getElementById('detailsText').textContent=clock?'The clock shows the local time of this browser. It is meant to run on permanent power.':'Each daypart has its own list of up to five tasks, managed as to-do lists in Home Assistant. Try the buttons below the device, or the arrow keys, Enter and Backspace.';
+document.getElementById('detailList').innerHTML=clock?'<li>Shows time, date and weekday.</li><li>Meant for permanent power.</li><li>No deep sleep; the display refreshes every minute.</li><li>The preview uses the browser clock, not the clock of a connected device.</li>':'<li>The device wakes at the start of each daypart, shows that daypart\'s list and resets it once per day.</li><li>Rows are ordered open first, then done, and stay put while the device is awake.</li><li>Once every task is done the finish card stays: UP, DOWN and PRESS are ignored, so nothing can be unchecked from the menu.</li><li>TOP undoes only the most recent toggle of the current wake, for example a slip on the last task.</li><li>Every wakeup starts with a full e-paper refresh; button presses while awake use partial refreshes.</li>';
+document.getElementById('metaTodo').textContent=clock?'Not active':'Deep sleep · 3 dayparts';document.getElementById('metaClock').textContent=clock?'Always on · no deep sleep':'USB optional';}
+todoTab.addEventListener('click',()=>{mode='todo';render();});clockTab.addEventListener('click',()=>{mode='clock';render();});
+slotTabs.addEventListener('click',e=>{const b=e.target.closest('button');if(b){wake(+b.dataset.slot);render();}});
+document.getElementById('keys').addEventListener('click',e=>{const b=e.target.closest('button');if(b)key(b.dataset.key);});
+document.addEventListener('keydown',e=>{if(mode!=='todo'||(e.target.closest('button,a')&&(e.key==='Enter'||e.key===' ')))return;
+const k={ArrowUp:'up',ArrowDown:'down',Enter:'press',' ':'press',Backspace:'top'}[e.key];if(k){e.preventDefault();key(k);}});
+let lastMinute=-1;setInterval(()=>{const m=new Date().getMinutes();if(m!==lastMinute){lastMinute=m;render();}},1000);
+wake(activeSlotNow());render();
 </script></body></html>
