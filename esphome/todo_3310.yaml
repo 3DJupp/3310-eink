@@ -96,6 +96,12 @@ esphome:
               - rtttl.play: "wake:d=8,o=6,b=200:c"
         # Start the short awake window before the ePaper update (which is synchronous).
         - script.execute: scheduled_sleep_cycle
+        # Draw once the first battery reading exists, so the boot image needs no second
+        # (partial) refresh just for the battery value.
+        - wait_until:
+            condition:
+              lambda: return id(battery_percent).has_state();
+            timeout: 3s
         - component.update: todo_display
 
 esp32:
@@ -363,17 +369,18 @@ globals:
     type: std::string
     initial_value: '"Evening"'
     restore_value: yes
+  # Shown on the finish card of the same daypart.
   - id: wake_message_0
     type: std::string
-    initial_value: '"Good morning"'
+    initial_value: '"Have a great day!"'
     restore_value: yes
   - id: wake_message_1
     type: std::string
-    initial_value: '"Lunchtime"'
+    initial_value: '"Enjoy your afternoon!"'
     restore_value: yes
   - id: wake_message_2
     type: std::string
-    initial_value: '"See you later"'
+    initial_value: '"See you tomorrow!"'
     restore_value: yes
 
   # Daypart shown on screen; restored so a boot without valid time keeps the last one.
@@ -424,9 +431,8 @@ globals:
     initial_value: "false"
     restore_value: no
 
-  # Keep the screen refresh count down: the first battery reading may trigger one
-  # extra refresh after boot; later ADC samples update HA only, not the e-paper.
-  - id: battery_ui_refreshed
+  # True while drawing the image that stays on the panel during deep sleep.
+  - id: going_to_sleep
     type: bool
     initial_value: "false"
     restore_value: no
@@ -560,6 +566,7 @@ script:
     then:
       # Restarted on every interaction. Start before display refresh so total awake time
       # is about 15s from the last event, including the synchronous ePaper refresh.
+      - lambda: id(going_to_sleep) = false;
       - delay: ${awake_timeout}
       - lambda: |-
           auto now = id(rtc_time).now();
@@ -585,6 +592,20 @@ script:
           topic: todo_3310/state/seconds_to_wakeup
           payload: !lambda 'return std::to_string(id(next_sleep_ms) / 1000);'
           retain: true
+      # Draw the sleep image (no selection bar, "SIDE: WAKE" in the footer) with a full
+      # refresh. Partial refreshes during the awake window leave ghosting, especially where
+      # the black selection bar moved; the full refresh clears it before the image has to
+      # stay on the panel for hours. The driver has no public "full refresh now" call, so
+      # reset its update counter: the next update is then a full one.
+      - lambda: |-
+          id(going_to_sleep) = true;
+          struct Access : waveshare_epaper::WaveshareEPaperTypeA {
+            static uint32_t waveshare_epaper::WaveshareEPaperTypeA::*at_update() { return &Access::at_update_; }
+          };
+          id(todo_display)->*Access::at_update() = 0;
+      - component.update: todo_display
+      # Let the panel finish the full refresh before deep sleep powers it down.
+      - delay: 3s
       - deep_sleep.enter:
           sleep_duration: !lambda "return id(next_sleep_ms);"
 
@@ -630,7 +651,7 @@ display:
       // retain the previous inverted selection row and make two rows look selected.
       it.fill(COLOR_OFF);
       // 200x200 monochrome Nokia-inspired UI.
-      // Status bar: last wake timestamp, approximate battery percent/icon, Wi-Fi.
+      // Status bar: Wi-Fi, last wake timestamp, battery.
       it.filled_rectangle(0, 0, 200, 21, COLOR_ON);
 
       int bars = 0;
@@ -646,35 +667,31 @@ display:
       if (bars >= 3) it.filled_rectangle(15, 8, 3, 10, COLOR_OFF); else it.rectangle(15, 8, 3, 10, COLOR_OFF);
       if (bars >= 4) it.filled_rectangle(20, 5, 3, 13, COLOR_OFF); else it.rectangle(20, 5, 3, 13, COLOR_OFF);
 
+      // Last wake time, centered in the larger status font.
       auto now = id(rtc_time).now();
       if (id(last_wakeup_daykey) > 0 && id(last_wakeup_hour) >= 0 && id(last_wakeup_minute) >= 0) {
         const int current_daykey = now.is_valid() ? now.year * 10000 + now.month * 100 + now.day_of_month : -1;
         if (current_daykey == id(last_wakeup_daykey)) {
-          it.printf(91, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "%02d:%02d", id(last_wakeup_hour), id(last_wakeup_minute));
+          it.printf(100, 0, id(font_md), COLOR_OFF, TextAlign::TOP_CENTER, "%02d:%02d", id(last_wakeup_hour), id(last_wakeup_minute));
         } else {
           const int mm = (id(last_wakeup_daykey) / 100) % 100;
           const int dd = id(last_wakeup_daykey) % 100;
-          it.printf(91, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "%02d.%02d %02d:%02d", dd, mm, id(last_wakeup_hour), id(last_wakeup_minute));
+          it.printf(100, 0, id(font_md), COLOR_OFF, TextAlign::TOP_CENTER, "%02d.%02d %02d:%02d", dd, mm, id(last_wakeup_hour), id(last_wakeup_minute));
         }
       } else {
-        it.print(91, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "--.-- --:--");
+        it.print(100, 0, id(font_md), COLOR_OFF, TextAlign::TOP_CENTER, "--:--");
       }
 
-      // Battery percentage is voltage-derived and therefore approximate.
-      int batt = -1;
+      // Battery outline with the approximate (voltage-derived) percentage inside.
+      it.rectangle(164, 3, 30, 15, COLOR_OFF);
+      it.filled_rectangle(194, 7, 3, 7, COLOR_OFF);
       if (id(battery_percent).has_state()) {
-        batt = (int) id(battery_percent).state;
+        int batt = (int) id(battery_percent).state;
         if (batt < 0) batt = 0;
         if (batt > 100) batt = 100;
-        it.printf(151, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "%d%%", batt);
+        it.printf(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "%d", batt);
       } else {
-        it.print(151, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "--%");
-      }
-      it.rectangle(160, 4, 26, 13, COLOR_OFF);
-      it.filled_rectangle(186, 8, 3, 5, COLOR_OFF);
-      if (batt > 0) {
-        int fill_w = (batt * 22) / 100;
-        if (fill_w > 0) it.filled_rectangle(162, 6, fill_w, 9, COLOR_OFF);
+        it.print(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "--");
       }
 
       const bool low_battery = id(battery_percent).has_state() && id(battery_percent).state <= 10.0f;
@@ -704,7 +721,8 @@ display:
           const int task = id(display_order)[row];
           const int y = 49 + row * 25;
           const bool is_done = mask & (1 << task);
-          const bool is_selected = (task == id(selected_task));
+          // The sleep image shows no selection: nothing can be selected while asleep.
+          const bool is_selected = !id(going_to_sleep) && task == id(selected_task);
           const auto fg = is_selected ? COLOR_OFF : COLOR_ON;
           if (is_selected) it.filled_rectangle(5, y, 190, 22, COLOR_ON);
           it.rectangle(10, y + 3, 15, 15, fg);
@@ -726,15 +744,16 @@ display:
       }
 
       // Progress segments follow the SAME order as the displayed rows and share the
-      // 184 px strip between however many tasks the daypart has.
-      for (int i = 0; i < count; i++) {
+      // 184 px strip between however many tasks the daypart has. A finished list hides
+      // them; the finish card already says everything is done.
+      for (int i = 0; i < count && !complete; i++) {
         const int x0 = 8 + i * 188 / count;
         const int x1 = 8 + (i + 1) * 188 / count - 4;
         if (mask & (1 << id(display_order)[i])) it.filled_rectangle(x0, 175, x1 - x0, 6, COLOR_ON);
         else it.rectangle(x0, 175, x1 - x0, 6, COLOR_ON);
       }
 
-      // Next daypart start, used by the finish card and the footer.
+      // Next daypart start, shown in the footer.
       int next = 0;
       if (now.is_valid()) {
         const int secs = now.hour * 3600 + now.minute * 60 + now.second;
@@ -760,8 +779,9 @@ display:
         it.line(98, 93, 102, 93, COLOR_ON);
         it.line(102, 93, 105, 90, COLOR_ON);
         it.print(100, 101, id(font_sm), COLOR_ON, TextAlign::TOP_CENTER, count == 0 ? "Nothing to do" : "All done!");
+        // Message of the finished daypart, e.g. "See you tomorrow!" in the evening.
         const std::string messages[3] = {id(wake_message_0), id(wake_message_1), id(wake_message_2)};
-        it.print(100, 117, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, now.is_valid() ? messages[next].c_str() : "Until the next wake");
+        it.print(100, 117, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, messages[slot].c_str());
       }
 
       // Footer doubles as a persistent low-battery warning; tasks remain visible.
@@ -772,10 +792,12 @@ display:
         it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "BATTERY EMPTY - CHARGE");
       } else if (low_battery) {
         it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "!! BATTERY LOW !!");
+      } else if (id(going_to_sleep)) {
+        it.printf(6, 185, id(font_xs), COLOR_OFF, "NEXT %02d:%02d", id(wake_hour)[next], id(wake_minute)[next]);
+        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "SIDE: WAKE");
       } else if (complete) {
         if (id(last_action_task) >= 0) it.print(6, 185, id(font_xs), COLOR_OFF, "TOP: UNDO");
         else it.printf(6, 185, id(font_xs), COLOR_OFF, "NEXT %02d:%02d", id(wake_hour)[next], id(wake_minute)[next]);
-        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "SIDE: WAKE");
       } else {
         it.print(6, 185, id(font_xs), COLOR_OFF, "UP/DOWN: SELECT");
         it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "PRESS: OK");
@@ -840,12 +862,6 @@ sensor:
             topic: todo_3310/state/battery_percent
             payload: !lambda 'return to_string(id(battery_percent).state);'
             retain: true
-        - if:
-            condition:
-              lambda: return !id(battery_ui_refreshed);
-            then:
-              - lambda: id(battery_ui_refreshed) = true;
-              - component.update: todo_display
 
 binary_sensor:
   # Same physical pin as deep_sleep.wakeup_pin; use the one central button definition.

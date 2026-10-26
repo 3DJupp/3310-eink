@@ -22,11 +22,11 @@ Retained JSON published by HA on start, on any change of the lists or helpers, a
 {
   "version": 2,
   "slots": [
-    {"title": "Morning", "hour": 6, "minute": 0, "message": "Good morning",
+    {"title": "Morning", "hour": 6, "minute": 0, "message": "Have a great day!",
      "tasks": ["Brush teeth", "Take medication", "Get dressed", "Pack school bag"]},
-    {"title": "Midday", "hour": 12, "minute": 0, "message": "Lunchtime",
+    {"title": "Midday", "hour": 12, "minute": 0, "message": "Enjoy your afternoon!",
      "tasks": ["Water plants", "Get the mail", "Hang up laundry"]},
-    {"title": "Evening", "hour": 18, "minute": 0, "message": "See you later",
+    {"title": "Evening", "hour": 18, "minute": 0, "message": "See you tomorrow!",
      "tasks": ["Tidy the kitchen", "Brush teeth", "Read"]}
   ]
 }
@@ -58,10 +58,13 @@ JSON in the same shape, published on connect for all three dayparts, after every
 - The row order is rebuilt at boot (open tasks first, then completed ones) and stays fixed while the device is awake.
 - Once every task of the active list is done, the list is locked: the finish card stays and UP, DOWN and PRESS only extend the awake window. TOP still undoes the last toggle if it happened during this wake; after the next wake that undo is gone. The daypart reset or a change in HA reopens tasks.
 - Checking the last open task plays a short jingle.
+- The finish card shows the message of the finished daypart (for example "See you tomorrow!" in the evening). The messages are free text in HA, so they can be in any language. The progress segments are hidden once the list is done.
 
 ## E-paper refresh
 
-Deep sleep powers down the panel's image memory, and the ESPHome driver starts every boot with a full refresh. So each RTC wake and each button wake begins with a full refresh, and only the redraws during the awake window (selection, toggles) use partial refreshes, with a full refresh every sixth update (`full_update_every`). A partial refresh straight after a wake is not possible with this panel and driver.
+Deep sleep powers down the panel's image memory, and the ESPHome driver starts every boot with a full refresh. So each RTC wake and each button wake begins with a full refresh. Redraws during the awake window (selection, toggles) use fast partial refreshes, with a full refresh every sixth update (`full_update_every`).
+
+ESPHome drives this panel's partial refresh with a generic lookup table, so moving the black selection bar leaves faint ghosting. Before going to sleep the device therefore draws a separate sleep image with a forced full refresh: no selection bar, `NEXT hh:mm` on the left and `SIDE: WAKE` on the right of the footer. The image that stays on the panel for hours is always a clean full refresh. The first draw after boot waits for the first battery reading, so no extra refresh is needed just for the battery value.
 
 ## Conflict handling: known gap
 

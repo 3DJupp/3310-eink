@@ -13,6 +13,7 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 - Tasks are managed in three Home Assistant **to-do lists**, so you add, rename, reorder and check tasks with the normal to-do card, the companion app or voice.
 - Checking a task on the device updates the HA list and the other way round (the device picks up HA changes on its next wake).
 - Once every task of the current list is done, the list is locked: the finish card stays and UP, DOWN and PRESS do nothing. TOP can undo only the most recent toggle of the same wake, for a slip on the last task.
+- While asleep the screen shows the next wake time and `SIDE: WAKE`; it is drawn with a full refresh right before sleep, which also clears ghosting from the moving selection bar.
 - Battery voltage/percentage, MQTT availability, last-seen timestamp and the seconds until the next wake are reported to HA.
 
 ## Repository layout
@@ -20,7 +21,7 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 - [`esphome/todo_3310.yaml`](esphome/todo_3310.yaml) — firmware for the daypart checklist
 - [`esphome/clock_3310.yaml`](esphome/clock_3310.yaml) — firmware for the always-on clock
 - [`homeassistant/packages/todo_3310.yaml`](homeassistant/packages/todo_3310.yaml) — HA helpers, MQTT entities, scripts and automations
-- [`homeassistant/dashboards/todo_3310.yaml`](homeassistant/dashboards/todo_3310.yaml) — example dashboard to manage the lists, schedule and device status
+- [`homeassistant/dashboards/todo_3310.yaml`](homeassistant/dashboards/todo_3310.yaml) — example dashboard view to manage the lists, schedule and device status
 - [`examples/secrets.example.yaml`](examples/secrets.example.yaml) — secret key names for both firmware variants
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — installation steps
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — MQTT contract and sync behavior
@@ -38,7 +39,7 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
    ```
    Merge this into an existing `homeassistant:` block; do not create a duplicate key.
 4. Validate and restart Home Assistant.
-5. Create a new dashboard and paste `homeassistant/dashboards/todo_3310.yaml` into its raw configuration editor.
+5. Open a dashboard, add or edit a view, choose **Edit in YAML** and replace its content with `homeassistant/dashboards/todo_3310.yaml` (the file is one view, not a whole dashboard).
 6. Copy `esphome/todo_3310.yaml` into ESPHome, add the font file and local secrets (see the [deployment guide](docs/DEPLOYMENT.md)).
 7. Run ESPHome Validate and resolve errors before flashing.
 8. After the first wake, check that `todo_3310/state/config_applied` is published and the lists show up on the device.

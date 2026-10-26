@@ -15,10 +15,14 @@
 - [x] Setup instructions and example secrets for both variants; API/OTA for `clock_3310`.
 - [x] Finish jingle when the last open task is checked.
 - [x] Manage tasks in Home Assistant to-do lists with an example dashboard.
+- [x] Full-refresh sleep image (no selection, "SIDE: WAKE") to clear partial-refresh ghosting.
+- [x] Larger centered wake time; battery percentage inside the battery icon.
+- [x] Finish card shows the finished daypart's own message; progress segments hidden when done.
 
 ## P0 — Required before first reliable release
 - [ ] Flash both variants on a real CoreInk and confirm boot, display and buttons.
-- [ ] Confirm the footer and title positions on the physical panel after this change.
+- [ ] Confirm the footer, title and status bar positions on the physical panel.
+- [ ] Check whether ghosting while navigating is acceptable with `full_update_every: 6`, or whether a lower value or a lighter selection style is needed.
 
 ## P1 — Display fidelity and device behavior
 - [ ] Test partial-refresh progression, selection inversion, completed-task marks and ghosting on real hardware.
