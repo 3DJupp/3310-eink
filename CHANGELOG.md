@@ -15,6 +15,9 @@
 - A finished list is locked: UP/DOWN no longer dismiss the finish card, PRESS cannot uncheck tasks, and TOP undo only covers the last toggle of the current wake.
 - Smaller daypart title so it no longer touches the separator line; footer bar and text moved up so the text clears the bottom edge of the panel.
 - Firmware reads the PCF8563 on boot and wakes 20 s after each daypart start; plays a short jingle when a list is finished.
+- Before deep sleep the device draws a sleep image with a forced full refresh: no selection bar, footer `NEXT hh:mm` / `SIDE: WAKE`. This clears ghosting from partial refreshes; the boot draw waits for the first battery reading instead of redrawing for it.
+- Status bar: wake time larger and centered, battery percentage inside the battery icon.
+- Finish card shows the message of the finished daypart (defaults "Have a great day!", "Enjoy your afternoon!", "See you tomorrow!"); progress segments are hidden once the list is done.
 - Fixed TOP undo not reporting the restored state to Home Assistant.
 - `clock_3310` gets API/OTA, an explicit timezone and reads the RTC on boot.
 - Both firmware files pass `esphome config` and `esphome compile` with ESPHome 2026.10.

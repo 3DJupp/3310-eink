@@ -13,6 +13,7 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 - Tasks are managed in three Home Assistant **to-do lists**, so you add, rename, reorder and check tasks with the normal to-do card, the companion app or voice.
 - Checking a task on the device updates the HA list and the other way round (the device picks up HA changes on its next wake).
 - Once every task of the current list is done, the list is locked: the finish card stays and UP, DOWN and PRESS do nothing. TOP can undo only the most recent toggle of the same wake, for a slip on the last task.
+- While asleep the screen shows the next wake time and `SIDE: WAKE`; it is drawn with a full refresh right before sleep, which also clears ghosting from the moving selection bar.
 - Battery voltage/percentage, MQTT availability, last-seen timestamp and the seconds until the next wake are reported to HA.
 
 ## Repository layout
