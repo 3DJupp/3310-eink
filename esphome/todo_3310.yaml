@@ -4,21 +4,15 @@ substitutions:
   friendly_name: "todo_3310"
   manufacturer: M5Stack
   model: CoreInk
+  timezone: Europe/Berlin
   coreink_buzzer_pin: GPIO2
   coreink_led_pin: GPIO10
   coreink_battery_pin: GPIO35
   coreink_pwr_mos_pin: GPIO12
   battery_divider: "4.90"
   awake_timeout: 15s
-  coreink_schedule:
-    morning:
-      hour: "6"
-      minute: "0"
-      message: "See you tomorrow"
-    evening:
-      hour: "18"
-      minute: "0"
-      message: "See you later"
+  # Wake a little after each daypart start so a slightly slow RTC still lands in the new daypart.
+  wake_margin_s: "20"
   coreink_btn:
     stick:
       up:
@@ -55,7 +49,7 @@ substitutions:
 esphome:
   name: ${hostname}
   friendly_name: ${friendly_name}
-  comment: "todo_3310 - generic Home Assistant/MQTT checklist with scheduled wake slots"
+  comment: "todo_3310 - Home Assistant/MQTT checklist with one task list per daypart"
   platformio_options:
     upload_speed: 1500000
   on_boot:
@@ -70,10 +64,10 @@ esphome:
     # Log the reason for a boot. GPIO wake source is the configured wake button below.
     - priority: 500
       then:
-        - lambda: |- 
+        - lambda: |-
             const auto cause = esp_sleep_get_wakeup_cause();
             if (cause == ESP_SLEEP_WAKEUP_TIMER) {
-              ESP_LOGI("wake", "Wake reason: scheduled timer (HA-configured slots)");
+              ESP_LOGI("wake", "Wake reason: scheduled timer (daypart start)");
             } else if (cause == ESP_SLEEP_WAKEUP_EXT0) {
               ESP_LOGI("wake", "Wake reason: SIDE button on ${coreink_btn.side.number} (EXT0)");
             } else if (cause == ESP_SLEEP_WAKEUP_EXT1) {
@@ -85,6 +79,11 @@ esphome:
             } else {
               ESP_LOGI("wake", "Wake reason: ESP-IDF code %d", (int) cause);
             }
+        # The ESP32's own clock drifts a lot during deep sleep; take the time from the
+        # PCF8563 before deciding which daypart is active. This runs before MQTT connects,
+        # so the state reported on connect already includes the daypart reset.
+        - pcf8563.read_time: rtc_time
+        - script.execute: refresh_view
     - priority: -100
       then:
         - delay: 2s
@@ -95,52 +94,6 @@ esphome:
             then:
               - logger.log: "Wake beep: SIDE / GPIO27"
               - rtttl.play: "wake:d=8,o=6,b=200:c"
-        - lambda: |- 
-            auto now = id(rtc_time).now();
-            if (now.is_valid()) {
-              const int day_key = now.year * 10000 + now.month * 100 + now.day_of_month;
-              id(last_wakeup_daykey) = day_key;
-              id(last_wakeup_hour) = now.hour;
-              id(last_wakeup_minute) = now.minute;
-              // Morning reset only, once per local calendar day. Evening wake keeps progress.
-              const int now_minutes = now.hour * 60 + now.minute;
-              const int morning_minutes = id(wake_hour_0) * 60 + id(wake_minute_0);
-              if (now_minutes >= morning_minutes && id(last_reset_day) != day_key) {
-                id(task_0) = false;
-                id(task_1) = false;
-                id(task_2) = false;
-                id(task_3) = false;
-                id(task_4) = false;
-                id(selected_task) = 0;
-                id(last_action_task) = -1;
-                id(last_reset_day) = day_key;
-                id(daily_reset_happened) = true;
-                ESP_LOGI("tasks", "Morning reset: daily checklist cleared for %04d-%02d-%02d", now.year, now.month, now.day_of_month);
-              }
-            } else {
-              ESP_LOGW("wake", "RTC time invalid; scheduled reset will be deferred");
-            }
-            // Rebuild a fixed row order once per boot/wakeup: unfinished tasks first,
-            // then completed tasks, each group retaining its original task order.
-            // Keep this order unchanged during the active session to avoid UI jumping.
-            bool boot_done[5] = {id(task_0), id(task_1), id(task_2), id(task_3), id(task_4)};
-            int boot_order[5];
-            int order_count = 0;
-            int first_open = -1;
-            for (int i = 0; i < 5; i++) {
-              if (!boot_done[i]) {
-                boot_order[order_count++] = i;
-                if (first_open < 0) first_open = i;
-              }
-            }
-            for (int i = 0; i < 5; i++) if (boot_done[i]) boot_order[order_count++] = i;
-            id(display_order_0) = boot_order[0];
-            id(display_order_1) = boot_order[1];
-            id(display_order_2) = boot_order[2];
-            id(display_order_3) = boot_order[3];
-            id(display_order_4) = boot_order[4];
-            id(selected_task) = (first_open >= 0) ? first_open : boot_order[0];
-            id(finish_card_dismissed) = false;
         # Start the short awake window before the ePaper update (which is synchronous).
         - script.execute: scheduled_sleep_cycle
         - component.update: todo_display
@@ -162,8 +115,14 @@ wifi:
   fast_connect: true
   reboot_timeout: 0s
 
-# MQTT is used for retained Home Assistant configuration and checklist status.
+# MQTT carries the retained Home Assistant configuration and the checklist state.
+# Topics (slot = daypart 0..2):
+#   todo_3310/config               retained JSON from HA: titles, times, messages, task labels
+#   todo_3310/command/slot/<slot>  retained JSON from HA after a change in the HA to-do list;
+#                                  the device applies it once and clears the retained message
+#   todo_3310/state/slot/<slot>    JSON from the device after every local change and on connect
 mqtt:
+  id: mqtt_client
   broker: !secret mqtt_broker
   username: !secret mqtt_username
   password: !secret mqtt_password
@@ -192,80 +151,124 @@ mqtt:
             return std::string(buf);
           retain: true
       - mqtt.publish:
-          topic: todo_3310/state/task/0/done
-          payload: !lambda 'return id(task_0) ? "ON" : "OFF";'
+          topic: todo_3310/state/active_slot
+          payload: !lambda 'return std::to_string(id(active_slot));'
           retain: true
-      - mqtt.publish:
-          topic: todo_3310/state/task/1/done
-          payload: !lambda 'return id(task_1) ? "ON" : "OFF";'
-          retain: true
-      - mqtt.publish:
-          topic: todo_3310/state/task/2/done
-          payload: !lambda 'return id(task_2) ? "ON" : "OFF";'
-          retain: true
-      - mqtt.publish:
-          topic: todo_3310/state/task/3/done
-          payload: !lambda 'return id(task_3) ? "ON" : "OFF";'
-          retain: true
-      - mqtt.publish:
-          topic: todo_3310/state/task/4/done
-          payload: !lambda 'return id(task_4) ? "ON" : "OFF";'
-          retain: true
+      - script.execute:
+          id: publish_slot_state
+          slot: 0
+      - script.execute:
+          id: publish_slot_state
+          slot: 1
+      - script.execute:
+          id: publish_slot_state
+          slot: 2
   on_message:
     - topic: todo_3310/config
       then:
         - lambda: |-
-            json::parse_json(x, [](JsonObject root) {
-              JsonArray labels = root["labels"].as<JsonArray>();
-              if (!labels.isNull()) {
-                if (labels.size() > 0) id(task_label_0) = labels[0].as<std::string>();
-                if (labels.size() > 1) id(task_label_1) = labels[1].as<std::string>();
-                if (labels.size() > 2) id(task_label_2) = labels[2].as<std::string>();
-                if (labels.size() > 3) id(task_label_3) = labels[3].as<std::string>();
-                if (labels.size() > 4) id(task_label_4) = labels[4].as<std::string>();
+            id(config_changed) = false;
+            json::parse_json(x, [](JsonObject root) -> bool {
+              JsonArray slots = root["slots"].as<JsonArray>();
+              if (slots.isNull()) {
+                ESP_LOGW("ha_sync", "Config without \"slots\" ignored (expected config version 2)");
+                return false;
               }
-              JsonArray hours = root["hours"].as<JsonArray>();
-              JsonArray minutes = root["minutes"].as<JsonArray>();
-              JsonArray messages = root["messages"].as<JsonArray>();
-              if (hours.size() > 0 && minutes.size() > 0) { id(wake_hour_0) = hours[0].as<int>(); id(wake_minute_0) = minutes[0].as<int>(); }
-              if (hours.size() > 1 && minutes.size() > 1) { id(wake_hour_1) = hours[1].as<int>(); id(wake_minute_1) = minutes[1].as<int>(); }
-              if (hours.size() > 2 && minutes.size() > 2) { id(wake_hour_2) = hours[2].as<int>(); id(wake_minute_2) = minutes[2].as<int>(); }
-              if (messages.size() > 0) id(wake_message_0) = messages[0].as<std::string>();
-              if (messages.size() > 1) id(wake_message_1) = messages[1].as<std::string>();
-              if (messages.size() > 2) id(wake_message_2) = messages[2].as<std::string>();
-              ESP_LOGI("ha_sync", "Applied Home Assistant config version %d", root["version"] | 1);
+              std::string *labels[3] = {&id(slot_labels_0), &id(slot_labels_1), &id(slot_labels_2)};
+              std::string *titles[3] = {&id(slot_title_0), &id(slot_title_1), &id(slot_title_2)};
+              std::string *messages[3] = {&id(wake_message_0), &id(wake_message_1), &id(wake_message_2)};
+              bool changed = false;
+              for (int s = 0; s < 3 && s < (int) slots.size(); s++) {
+                JsonObject slot = slots[s].as<JsonObject>();
+                // Up to five non-empty labels, stored newline-separated so they survive deep sleep.
+                std::vector<std::string> next;
+                std::string joined;
+                JsonArray tasks = slot["tasks"].as<JsonArray>();
+                for (JsonVariant task : tasks) {
+                  if (next.size() == 5) break;
+                  std::string label = task.as<std::string>();
+                  std::replace(label.begin(), label.end(), '\n', ' ');
+                  if (label.empty()) continue;
+                  if (!joined.empty()) joined += '\n';
+                  joined += label;
+                  next.push_back(label);
+                }
+                if (joined != *labels[s]) {
+                  // Keep done states by label name so renaming or reordering in HA does not
+                  // move a check mark to a different task.
+                  const std::vector<std::string> &prev = id(slot_tasks)[s];
+                  int remapped = 0;
+                  for (size_t n = 0; n < next.size(); n++) {
+                    for (size_t p = 0; p < prev.size(); p++) {
+                      if (prev[p] == next[n] && (id(slot_done)[s] & (1 << p))) remapped |= 1 << n;
+                    }
+                  }
+                  id(slot_done)[s] = remapped;
+                  *labels[s] = joined;
+                  id(slot_tasks)[s] = next;
+                  changed = true;
+                }
+                if (slot["title"].is<const char *>() && *titles[s] != slot["title"].as<std::string>()) { *titles[s] = slot["title"].as<std::string>(); changed = true; }
+                if (slot["message"].is<const char *>() && *messages[s] != slot["message"].as<std::string>()) { *messages[s] = slot["message"].as<std::string>(); changed = true; }
+                if (slot["hour"].is<int>() && slot["minute"].is<int>()) {
+                  const int h = slot["hour"].as<int>(), m = slot["minute"].as<int>();
+                  if (h >= 0 && h < 24 && m >= 0 && m < 60 && (h != id(wake_hour)[s] || m != id(wake_minute)[s])) {
+                    id(wake_hour)[s] = h;
+                    id(wake_minute)[s] = m;
+                    changed = true;
+                  }
+                }
+              }
+              id(config_changed) = changed;
+              ESP_LOGI("ha_sync", "Home Assistant config version %d %s", root["version"] | 0, changed ? "applied" : "unchanged");
               return true;
             });
-        - component.update: todo_display
+        # Retained config is re-published regularly; only redraw the e-paper when something changed.
+        - if:
+            condition:
+              lambda: return id(config_changed);
+            then:
+              - script.execute: refresh_view
+              - component.update: todo_display
         - mqtt.publish:
             topic: todo_3310/state/config_applied
             payload: "true"
             retain: true
-    - topic: todo_3310/command/task/0/done
+    - topic: todo_3310/command/slot/0
       then:
-        - lambda: if (x == "ON") id(task_0) = true; else if (x == "OFF") id(task_0) = false;
-        - component.update: todo_display
-    - topic: todo_3310/command/task/1/done
+        - if:
+            condition:
+              lambda: return !x.empty();
+            then:
+              - script.execute:
+                  id: apply_slot_command
+                  slot: 0
+                  payload: !lambda return x;
+    - topic: todo_3310/command/slot/1
       then:
-        - lambda: if (x == "ON") id(task_1) = true; else if (x == "OFF") id(task_1) = false;
-        - component.update: todo_display
-    - topic: todo_3310/command/task/2/done
+        - if:
+            condition:
+              lambda: return !x.empty();
+            then:
+              - script.execute:
+                  id: apply_slot_command
+                  slot: 1
+                  payload: !lambda return x;
+    - topic: todo_3310/command/slot/2
       then:
-        - lambda: if (x == "ON") id(task_2) = true; else if (x == "OFF") id(task_2) = false;
-        - component.update: todo_display
-    - topic: todo_3310/command/task/3/done
-      then:
-        - lambda: if (x == "ON") id(task_3) = true; else if (x == "OFF") id(task_3) = false;
-        - component.update: todo_display
-    - topic: todo_3310/command/task/4/done
-      then:
-        - lambda: if (x == "ON") id(task_4) = true; else if (x == "OFF") id(task_4) = false;
-        - component.update: todo_display
+        - if:
+            condition:
+              lambda: return !x.empty();
+            then:
+              - script.execute:
+                  id: apply_slot_command
+                  slot: 2
+                  payload: !lambda return x;
 
 api:
   reboot_timeout: 0s
   encryption:
-    key: !secret coreink_bathroom_todo__encryption_key
+    key: !secret todo_3310_api_key
 
 ota:
   - platform: esphome
@@ -274,10 +277,8 @@ safe_mode:
   boot_is_good_after: 15s
   num_attempts: 10
 
-# Integrated CoreInk buzzer on GPIO2. RTTTL is used for a brief wake chirp.
-# BACKLOG: add a distinctive, more-epic finish melody after the wake chirp is verified.
-# BACKLOG: assign tasks to dayparts (medications in the morning; teeth morning/evening;
-# lunch/solids task TBD). Teeth will likely need separate morning/evening task instances.
+# Integrated CoreInk buzzer on GPIO2. RTTTL plays a brief wake chirp and a short
+# finish jingle when the last open task of the current list is checked.
 output:
   - platform: ledc
     pin: ${coreink_buzzer_pin}
@@ -289,7 +290,8 @@ rtttl:
   output: buzzer_output
   gain: 30%
 
-# Daily use: configurable morning/evening wakeups; morning resets the list, evening keeps progress.
+# Daily use: three dayparts (morning, midday, evening), each with its own task list.
+# The device wakes at the start of every daypart and resets that daypart's list once per day.
 # The single wakeup pin is read from the central button definition: coreink_btn.side.
 # UP/DOWN/PRESS stay list navigation/interaction while awake; multi-pin ANY_LOW is parked for now.
 deep_sleep:
@@ -300,18 +302,6 @@ deep_sleep:
     inverted: ${coreink_btn.side.inverted}
     allow_other_uses: ${coreink_btn.side.other_uses}
   wakeup_pin_mode: KEEP_AWAKE
-  on_wake:
-    then:
-      - if:
-          condition:
-            lambda: return cause == deep_sleep::WAKEUP_CAUSE_TIMER;
-          then:
-            - logger.log: "Deep-sleep wake cause: scheduled timer"
-      - if:
-          condition:
-            lambda: return cause == deep_sleep::WAKEUP_CAUSE_GPIO;
-          then:
-            - logger.log: "Deep-sleep wake cause: SIDE button on ${coreink_btn.side.number}"
 
 i2c:
   - id: bus_int
@@ -324,75 +314,54 @@ spi:
   miso_pin: GPIO34
 
 globals:
-  - id: task_0
-    type: bool
-    initial_value: "false"
+  # Per-daypart lists: index 0 = morning, 1 = midday, 2 = evening.
+  # Done states are bit masks (bit i = task i of that daypart).
+  - id: slot_done
+    type: std::array<int, 3>
+    initial_value: "{0, 0, 0}"
     restore_value: yes
-
-  - id: task_1
-    type: bool
-    initial_value: "false"
+  # Local calendar day (YYYYMMDD) on which each daypart list was last reset.
+  - id: slot_reset_day
+    type: std::array<int, 3>
+    initial_value: "{-1, -1, -1}"
     restore_value: yes
-
-  - id: task_2
-    type: bool
-    initial_value: "false"
+  - id: wake_hour
+    type: std::array<int, 3>
+    initial_value: "{6, 12, 18}"
     restore_value: yes
-
-  - id: task_3
-    type: bool
-    initial_value: "false"
-    restore_value: yes
-
-  - id: task_4
-    type: bool
-    initial_value: "false"
+  - id: wake_minute
+    type: std::array<int, 3>
+    initial_value: "{0, 0, 0}"
     restore_value: yes
 
   # Labels are runtime-configurable from Home Assistant over retained MQTT.
-  - id: task_label_0
+  # Each daypart keeps up to five labels, newline-separated.
+  - id: slot_labels_0
     type: std::string
-    initial_value: '"Water plants"'
+    initial_value: '"Brush teeth\nTake medication\nGet dressed\nPack school bag"'
     restore_value: yes
-  - id: task_label_1
+    max_restore_data_length: 254
+  - id: slot_labels_1
     type: std::string
-    initial_value: '"Get the mail"'
+    initial_value: '"Water plants\nGet the mail\nHang up laundry"'
     restore_value: yes
-  - id: task_label_2
+    max_restore_data_length: 254
+  - id: slot_labels_2
     type: std::string
-    initial_value: '"Hang up laundry"'
+    initial_value: '"Tidy the kitchen\nBrush teeth\nRead"'
     restore_value: yes
-  - id: task_label_3
+    max_restore_data_length: 254
+  - id: slot_title_0
     type: std::string
-    initial_value: '"Tidy the kitchen"'
+    initial_value: '"Morning"'
     restore_value: yes
-  - id: task_label_4
+  - id: slot_title_1
     type: std::string
-    initial_value: '"Read"'
+    initial_value: '"Midday"'
     restore_value: yes
-  - id: wake_hour_0
-    type: int
-    initial_value: "6"
-    restore_value: yes
-  - id: wake_minute_0
-    type: int
-    initial_value: "0"
-    restore_value: yes
-  - id: wake_hour_1
-    type: int
-    initial_value: "12"
-    restore_value: yes
-  - id: wake_minute_1
-    type: int
-    initial_value: "0"
-    restore_value: yes
-  - id: wake_hour_2
-    type: int
-    initial_value: "18"
-    restore_value: yes
-  - id: wake_minute_2
-    type: int
-    initial_value: "0"
+  - id: slot_title_2
+    type: std::string
+    initial_value: '"Evening"'
     restore_value: yes
   - id: wake_message_0
     type: std::string
@@ -407,20 +376,29 @@ globals:
     initial_value: '"See you later"'
     restore_value: yes
 
-  - id: selected_task
+  # Daypart shown on screen; restored so a boot without valid time keeps the last one.
+  - id: active_slot
     type: int
     initial_value: "0"
     restore_value: yes
 
+  # Parsed labels per daypart, rebuilt from slot_labels_* at boot and on config change.
+  - id: slot_tasks
+    type: std::array<std::vector<std::string>, 3>
+    restore_value: no
+
+  # Selection is a task index within the active daypart (-1 = empty list).
+  - id: selected_task
+    type: int
+    initial_value: "0"
+    restore_value: no
+
+  # Undo only covers the most recent toggle of the current awake session, so a finished
+  # list cannot be reopened with TOP after the next wakeup.
   - id: last_action_task
     type: int
     initial_value: "-1"
-    restore_value: yes
-
-  - id: last_action_previous
-    type: bool
-    initial_value: "false"
-    restore_value: yes
+    restore_value: no
 
   - id: last_wakeup_daykey
     type: int
@@ -436,17 +414,15 @@ globals:
     type: int
     initial_value: "-1"
     restore_value: yes
-  - id: last_reset_day
-    type: int
-    restore_value: yes
-    initial_value: "-1"
-  - id: daily_reset_happened
-    type: bool
-    initial_value: "false"
-    restore_value: no
+
   - id: next_sleep_ms
     type: int
     initial_value: "3600000"
+
+  - id: config_changed
+    type: bool
+    initial_value: "false"
+    restore_value: no
 
   # Keep the screen refresh count down: the first battery reading may trigger one
   # extra refresh after boot; later ADC samples update HA only, not the e-paper.
@@ -455,42 +431,137 @@ globals:
     initial_value: "false"
     restore_value: no
 
-  - id: finish_card_dismissed
-    type: bool
-    initial_value: "false"
-    restore_value: no
-
-  # Stable visual order for the current awake session. Recomputed only at boot/wakeup,
-  # so checking/unchecking tasks does not move rows while the user is interacting.
-  - id: display_order_0
-    type: int
-    initial_value: "0"
-    restore_value: no
-  - id: display_order_1
-    type: int
-    initial_value: "1"
-    restore_value: no
-  - id: display_order_2
-    type: int
-    initial_value: "2"
-    restore_value: no
-  - id: display_order_3
-    type: int
-    initial_value: "3"
-    restore_value: no
-  - id: display_order_4
-    type: int
-    initial_value: "4"
+  # Stable visual order for the current awake session. Recomputed only at boot/wakeup
+  # and on config change, so checking tasks does not move rows while the user interacts.
+  - id: display_order
+    type: std::array<int, 5>
+    initial_value: "{0, 1, 2, 3, 4}"
     restore_value: no
 
 script:
+  # Pick the active daypart from the RTC, reset its list once per day, parse labels and
+  # rebuild the row order: open tasks first, then completed ones, each in list order.
+  - id: refresh_view
+    mode: queued
+    then:
+      - lambda: |-
+          const std::string *joined[3] = {&id(slot_labels_0), &id(slot_labels_1), &id(slot_labels_2)};
+          for (int s = 0; s < 3; s++) {
+            std::vector<std::string> tasks;
+            size_t start = 0;
+            while (start < joined[s]->size() && tasks.size() < 5) {
+              size_t end = joined[s]->find('\n', start);
+              if (end == std::string::npos) end = joined[s]->size();
+              if (end > start) tasks.push_back(joined[s]->substr(start, end - start));
+              start = end + 1;
+            }
+            id(slot_tasks)[s] = tasks;
+          }
+
+          auto now = id(rtc_time).now();
+          if (now.is_valid()) {
+            const int day_key = now.year * 10000 + now.month * 100 + now.day_of_month;
+            id(last_wakeup_daykey) = day_key;
+            id(last_wakeup_hour) = now.hour;
+            id(last_wakeup_minute) = now.minute;
+            // Active daypart = the one that started most recently. Before the first start
+            // of the day, yesterday's latest daypart is still active.
+            const int now_m = now.hour * 60 + now.minute;
+            int active = -1, active_start = -1, latest = 0, latest_start = -1;
+            for (int s = 0; s < 3; s++) {
+              const int start_m = id(wake_hour)[s] * 60 + id(wake_minute)[s];
+              if (start_m <= now_m && start_m > active_start) { active = s; active_start = start_m; }
+              if (start_m > latest_start) { latest = s; latest_start = start_m; }
+            }
+            const bool started_today = active >= 0;
+            if (!started_today) active = latest;
+            if (started_today && id(slot_reset_day)[active] != day_key) {
+              id(slot_done)[active] = 0;
+              id(slot_reset_day)[active] = day_key;
+              ESP_LOGI("tasks", "Daypart %d list reset for %04d-%02d-%02d", active, now.year, now.month, now.day_of_month);
+            }
+            id(active_slot) = active;
+          } else {
+            ESP_LOGW("wake", "RTC time invalid; keeping daypart %d, reset deferred", id(active_slot));
+          }
+
+          const int s = id(active_slot);
+          const int count = id(slot_tasks)[s].size();
+          const int mask = id(slot_done)[s];
+          int pos = 0, first_open = -1;
+          for (int i = 0; i < count; i++) if (!(mask & (1 << i))) { id(display_order)[pos++] = i; if (first_open < 0) first_open = i; }
+          for (int i = 0; i < count; i++) if (mask & (1 << i)) id(display_order)[pos++] = i;
+          id(selected_task) = count == 0 ? -1 : (first_open >= 0 ? first_open : id(display_order)[0]);
+          id(last_action_task) = -1;
+
+  # Report one daypart list as {"labels": [...], "done": [...]}; HA matches by label name.
+  - id: publish_slot_state
+    mode: queued
+    parameters:
+      slot: int
+    then:
+      - mqtt.publish:
+          topic: !lambda 'return "todo_3310/state/slot/" + std::to_string(slot);'
+          payload: !lambda |-
+            return json::build_json([slot](JsonObject root) {
+              JsonArray labels = root["labels"].to<JsonArray>();
+              JsonArray done = root["done"].to<JsonArray>();
+              const auto &tasks = id(slot_tasks)[slot];
+              for (size_t i = 0; i < tasks.size(); i++) {
+                labels.add(tasks[i]);
+                done.add((id(slot_done)[slot] & (1 << i)) != 0);
+              }
+            });
+
+  # Apply {"labels": [...], "done": [...]} from HA by label name, then clear the retained
+  # command so an old command cannot undo a later daypart reset.
+  - id: apply_slot_command
+    mode: queued
+    parameters:
+      slot: int
+      payload: string
+    then:
+      - lambda: |-
+          json::parse_json(payload, [slot](JsonObject root) -> bool {
+            JsonArray labels = root["labels"].as<JsonArray>();
+            JsonArray done = root["done"].as<JsonArray>();
+            if (labels.isNull() || done.isNull()) return false;
+            const auto &tasks = id(slot_tasks)[slot];
+            int mask = id(slot_done)[slot];
+            for (size_t i = 0; i < labels.size() && i < done.size(); i++) {
+              const std::string label = labels[i].as<std::string>();
+              for (size_t t = 0; t < tasks.size(); t++) {
+                if (tasks[t] != label) continue;
+                if (done[i].as<bool>()) mask |= 1 << t; else mask &= ~(1 << t);
+                break;
+              }
+            }
+            ESP_LOGI("ha_sync", "Daypart %d done mask 0x%02x -> 0x%02x from Home Assistant", slot, id(slot_done)[slot], mask);
+            id(slot_done)[slot] = mask;
+            return true;
+          });
+      - mqtt.publish:
+          topic: !lambda 'return "todo_3310/command/slot/" + std::to_string(slot);'
+          payload: ""
+          retain: true
+      # The state reported on connect may predate this command; report the result so HA
+      # ends up with the same list state as the device.
+      - script.execute:
+          id: publish_slot_state
+          slot: !lambda return slot;
+      - if:
+          condition:
+            lambda: return slot == id(active_slot);
+          then:
+            - component.update: todo_display
+
   - id: scheduled_sleep_cycle
     mode: restart
     then:
       # Restarted on every interaction. Start before display refresh so total awake time
       # is about 15s from the last event, including the synchronous ePaper refresh.
       - delay: ${awake_timeout}
-      - lambda: |- 
+      - lambda: |-
           auto now = id(rtc_time).now();
           if (!now.is_valid()) {
             // Fallback if RTC has no valid time: retry after 10 minutes.
@@ -498,14 +569,14 @@ script:
             ESP_LOGW("sleep", "RTC time invalid; fallback sleep is 10 minutes");
             return;
           }
+          // Sleep until shortly after the next daypart start (today or tomorrow).
           const int now_s = now.hour * 3600 + now.minute * 60 + now.second;
-          int target_s = 24 * 3600 + id(wake_hour_0) * 3600 + id(wake_minute_0) * 60;
-          const int wake_s[3] = {
-            id(wake_hour_0) * 3600 + id(wake_minute_0) * 60,
-            id(wake_hour_1) * 3600 + id(wake_minute_1) * 60,
-            id(wake_hour_2) * 3600 + id(wake_minute_2) * 60
-          };
-          for (int i = 0; i < 3; i++) if (wake_s[i] > now_s && wake_s[i] < target_s) target_s = wake_s[i];
+          int target_s = -1;
+          for (int s = 0; s < 3; s++) {
+            int start_s = id(wake_hour)[s] * 3600 + id(wake_minute)[s] * 60 + ${wake_margin_s};
+            if (start_s <= now_s) start_s += 24 * 3600;
+            if (target_s < 0 || start_s < target_s) target_s = start_s;
+          }
           int seconds = target_s - now_s;
           if (seconds < 30) seconds = 30;
           id(next_sleep_ms) = seconds * 1000;
@@ -525,28 +596,21 @@ font:
     glyphs:
       - " "
       - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
+      - "äöüÄÖÜß€"
   - file: "fonts/segoeuithibd.ttf"
     id: font_sm
     size: 12
     glyphs:
       - " "
       - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
+      - "äöüÄÖÜß€"
   - file: "fonts/segoeuithibd.ttf"
     id: font_md
     size: 15
     glyphs:
       - " "
       - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
-  - file: "fonts/segoeuithibd.ttf"
-    id: font_l
-    size: 20
-    glyphs:
-      - " "
-      - "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      - "\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF\u20AC"
+      - "äöüÄÖÜß€"
 
 display:
   - platform: waveshare_epaper
@@ -616,41 +680,43 @@ display:
       const bool low_battery = id(battery_percent).has_state() && id(battery_percent).state <= 10.0f;
       const bool critical_battery = id(battery_voltage).has_state() && id(battery_voltage).state <= 3.40f;
 
-      it.print(7, 25, id(font_l), COLOR_ON, "TODO");
-      bool done_flags[5] = {id(task_0), id(task_1), id(task_2), id(task_3), id(task_4)};
-      const char *labels[5] = {id(task_label_0).c_str(), id(task_label_1).c_str(), id(task_label_2).c_str(), id(task_label_3).c_str(), id(task_label_4).c_str()};
+      const int slot = id(active_slot);
+      const auto &labels = id(slot_tasks)[slot];
+      const int count = labels.size();
+      const int mask = id(slot_done)[slot];
       int done = 0;
-      for (int i = 0; i < 5; i++) if (done_flags[i]) done++;
-      int selected = id(selected_task);
-      if (selected < 0 || selected > 4) selected = 0;
-      it.printf(193, 27, id(font_md), COLOR_ON, TextAlign::TOP_RIGHT, "%d/5", done);
-      it.line(5, 47, 195, 47);
+      for (int i = 0; i < count; i++) if (mask & (1 << i)) done++;
+      const bool complete = done == count;
+
+      // Daypart title. font_md glyphs reach about 17 px below y, so the title ends well
+      // above the separator line instead of touching it.
+      const std::string titles[3] = {id(slot_title_0), id(slot_title_1), id(slot_title_2)};
+      std::string title = titles[slot];
+      for (auto &c : title) c = toupper((unsigned char) c);
+      it.print(7, 23, id(font_md), COLOR_ON, title.c_str());
+      it.printf(193, 23, id(font_md), COLOR_ON, TextAlign::TOP_RIGHT, "%d/%d", done, count);
+      it.line(5, 45, 195, 45);
 
       // Fixed order set on boot/wakeup; toggling a task changes only its appearance,
-      // not its position until the next wakeup.
-      int order[5] = {id(display_order_0), id(display_order_1), id(display_order_2), id(display_order_3), id(display_order_4)};
-
-      // When all tasks are done, show the finish card alone. Navigation dismisses it
-      // so the completed rows can be browsed without highlights bleeding through the card.
-      if (!(done == 5 && !id(finish_card_dismissed))) {
-        for (int row = 0; row < 5; row++) {
-          const int task = order[row];
-          const int y = 51 + row * 25;
-          const bool is_selected = (task == selected);
+      // not its position until the next wakeup. A finished list shows only the finish card.
+      if (!complete) {
+        for (int row = 0; row < count; row++) {
+          const int task = id(display_order)[row];
+          const int y = 49 + row * 25;
+          const bool is_done = mask & (1 << task);
+          const bool is_selected = (task == id(selected_task));
           const auto fg = is_selected ? COLOR_OFF : COLOR_ON;
           if (is_selected) it.filled_rectangle(5, y, 190, 22, COLOR_ON);
-          if (done_flags[task]) {
-            it.rectangle(10, y + 3, 15, 15, fg);
+          it.rectangle(10, y + 3, 15, 15, fg);
+          if (is_done) {
             it.line(12, y + 10, 16, y + 14, fg);
             it.line(16, y + 14, 23, y + 5, fg);
-          } else {
-            it.rectangle(10, y + 3, 15, 15, fg);
           }
-          it.print(32, y + 2, id(font_sm), fg, labels[task]);
-          if (done_flags[task]) {
+          it.print(32, y + 2, id(font_sm), fg, labels[task].c_str());
+          if (is_done) {
             // Measure the rendered label so the strike-through fits any task name.
             int tx, ty, text_w, text_h;
-            it.get_text_bounds(32, y + 2, labels[task], id(font_sm), TextAlign::TOP_LEFT, &tx, &ty, &text_w, &text_h);
+            it.get_text_bounds(32, y + 2, labels[task].c_str(), id(font_sm), TextAlign::TOP_LEFT, &tx, &ty, &text_w, &text_h);
             const int strike_end = std::min(tx + text_w, 190);
             if (text_w > 0) it.line(32, y + 12, strike_end, y + 12, fg);
           } else if (is_selected) {
@@ -659,18 +725,31 @@ display:
         }
       }
 
-      // Progress segments follow the SAME order as the displayed rows.
-      // Open tasks are placed first at wakeup, completed tasks after them; therefore
-      // the bar visually mirrors that order instead of the original task IDs.
-      for (int i = 0; i < 5; i++) {
-        const int x = 8 + i * 38;
-        const int task = order[i];
-        if (done_flags[task]) it.filled_rectangle(x, 180, 34, 7, COLOR_ON);
-        else it.rectangle(x, 180, 34, 7, COLOR_ON);
+      // Progress segments follow the SAME order as the displayed rows and share the
+      // 184 px strip between however many tasks the daypart has.
+      for (int i = 0; i < count; i++) {
+        const int x0 = 8 + i * 188 / count;
+        const int x1 = 8 + (i + 1) * 188 / count - 4;
+        if (mask & (1 << id(display_order)[i])) it.filled_rectangle(x0, 175, x1 - x0, 6, COLOR_ON);
+        else it.rectangle(x0, 175, x1 - x0, 6, COLOR_ON);
       }
 
-      // Finished card follows the attached mockup: compact framed panel + pixel smiley.
-      if (done == 5 && !id(finish_card_dismissed)) {
+      // Next daypart start, used by the finish card and the footer.
+      int next = 0;
+      if (now.is_valid()) {
+        const int secs = now.hour * 3600 + now.minute * 60 + now.second;
+        int best = -1;
+        for (int s = 0; s < 3; s++) {
+          int candidate = id(wake_hour)[s] * 3600 + id(wake_minute)[s] * 60;
+          if (candidate <= secs) candidate += 24 * 3600;
+          if (best < 0 || candidate < best) { best = candidate; next = s; }
+        }
+      } else {
+        next = (slot + 1) % 3;
+      }
+
+      // Finished card: compact framed panel + pixel smiley.
+      if (complete) {
         it.filled_rectangle(25, 67, 150, 69, COLOR_OFF);
         it.rectangle(25, 67, 150, 69, COLOR_ON);
         it.rectangle(28, 70, 144, 63, COLOR_ON);
@@ -680,31 +759,26 @@ display:
         it.line(95, 90, 98, 93, COLOR_ON);
         it.line(98, 93, 102, 93, COLOR_ON);
         it.line(102, 93, 105, 90, COLOR_ON);
-        it.print(100, 103, id(font_sm), COLOR_ON, TextAlign::TOP_CENTER, "All done!");
-        if (now.is_valid()) {
-          const int secs = now.hour * 3600 + now.minute * 60 + now.second;
-          const int wake_s[3] = {id(wake_hour_0)*3600 + id(wake_minute_0)*60, id(wake_hour_1)*3600 + id(wake_minute_1)*60, id(wake_hour_2)*3600 + id(wake_minute_2)*60};
-          int next = 0; int best = 24*3600 + wake_s[0];
-          for (int i=0; i<3; i++) { int candidate = wake_s[i] > secs ? wake_s[i] : wake_s[i] + 24*3600; if (candidate < best) { best = candidate; next = i; } }
-          const std::string messages[3] = {id(wake_message_0), id(wake_message_1), id(wake_message_2)};
-          it.print(100, 120, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, messages[next].c_str());
-        } else {
-          it.print(100, 120, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, "Until the next wake");
-        }
+        it.print(100, 101, id(font_sm), COLOR_ON, TextAlign::TOP_CENTER, count == 0 ? "Nothing to do" : "All done!");
+        const std::string messages[3] = {id(wake_message_0), id(wake_message_1), id(wake_message_2)};
+        it.print(100, 117, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, now.is_valid() ? messages[next].c_str() : "Until the next wake");
       }
 
       // Footer doubles as a persistent low-battery warning; tasks remain visible.
-      it.filled_rectangle(0, 188, 200, 12, COLOR_ON);
+      // font_xs glyphs end about 11 px below y; the bar starts higher than before so the
+      // text keeps a margin to the bottom edge of the physical panel.
+      it.filled_rectangle(0, 184, 200, 16, COLOR_ON);
       if (critical_battery) {
-        it.print(100, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "BATTERY EMPTY - CHARGE");
+        it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "BATTERY EMPTY - CHARGE");
       } else if (low_battery) {
-        it.print(100, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "!! BATTERY LOW !!");
-      } else if (done == 5) {
-        it.print(6, 189, id(font_xs), COLOR_OFF, "TOP: UNDO");
-        it.print(194, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "SIDE: WAKE");
+        it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "!! BATTERY LOW !!");
+      } else if (complete) {
+        if (id(last_action_task) >= 0) it.print(6, 185, id(font_xs), COLOR_OFF, "TOP: UNDO");
+        else it.printf(6, 185, id(font_xs), COLOR_OFF, "NEXT %02d:%02d", id(wake_hour)[next], id(wake_minute)[next]);
+        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "SIDE: WAKE");
       } else {
-        it.print(6, 189, id(font_xs), COLOR_OFF, "UP/DOWN: SELECT");
-        it.print(194, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "PRESS: OK");
+        it.print(6, 185, id(font_xs), COLOR_OFF, "UP/DOWN: SELECT");
+        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "PRESS: OK");
       }
 
 sensor:
@@ -791,6 +865,8 @@ binary_sensor:
         - script.execute: scheduled_sleep_cycle
         - component.update: todo_display
 
+  # A finished (or empty) list is locked: UP/DOWN/PRESS only extend the awake window and
+  # do not redraw, so the finish card stays and nothing can be unchecked from the menu.
   - platform: gpio
     pin:
       number: ${coreink_btn.stick.up.number}
@@ -803,15 +879,21 @@ binary_sensor:
       - delayed_off: 40ms
     on_press:
       then:
-        - lambda: |-
-            int order[5] = {id(display_order_0), id(display_order_1), id(display_order_2), id(display_order_3), id(display_order_4)};
-            int pos = 0;
-            for (int i = 0; i < 5; i++) if (order[i] == id(selected_task)) pos = i;
-            id(selected_task) = order[(pos + 4) % 5];
-            id(finish_card_dismissed) = true;
-            ESP_LOGI("ui", "UP: selected task %d", id(selected_task));
         - script.execute: scheduled_sleep_cycle
-        - component.update: todo_display
+        - if:
+            condition:
+              lambda: |-
+                const int s = id(active_slot);
+                const int all = (1 << id(slot_tasks)[s].size()) - 1;
+                return (id(slot_done)[s] & all) != all;
+            then:
+              - lambda: |-
+                  const int count = id(slot_tasks)[id(active_slot)].size();
+                  int pos = 0;
+                  for (int i = 0; i < count; i++) if (id(display_order)[i] == id(selected_task)) pos = i;
+                  id(selected_task) = id(display_order)[(pos + count - 1) % count];
+                  ESP_LOGI("ui", "UP: selected task %d", id(selected_task));
+              - component.update: todo_display
 
   - platform: gpio
     pin:
@@ -825,35 +907,34 @@ binary_sensor:
       - delayed_off: 40ms
     on_press:
       then:
-        # Once every task is done the list is locked: PRESS only brings the finish card
-        # back instead of unchecking a task. TOP still undoes the last toggle, and the
-        # morning reset or Home Assistant reopen tasks.
+        - script.execute: scheduled_sleep_cycle
         - if:
             condition:
-              lambda: return id(task_0) && id(task_1) && id(task_2) && id(task_3) && id(task_4);
+              lambda: |-
+                const int s = id(active_slot);
+                const int all = (1 << id(slot_tasks)[s].size()) - 1;
+                return (id(slot_done)[s] & all) != all;
             then:
               - lambda: |-
-                  id(finish_card_dismissed) = false;
-                  ESP_LOGI("ui", "SELECT: list complete, toggling locked");
-            else:
-              - lambda: |-
+                  const int s = id(active_slot);
                   const int i = id(selected_task);
                   id(last_action_task) = i;
-                  if (i == 0) { id(last_action_previous) = id(task_0); id(task_0) = !id(task_0); }
-                  else if (i == 1) { id(last_action_previous) = id(task_1); id(task_1) = !id(task_1); }
-                  else if (i == 2) { id(last_action_previous) = id(task_2); id(task_2) = !id(task_2); }
-                  else if (i == 3) { id(last_action_previous) = id(task_3); id(task_3) = !id(task_3); }
-                  else if (i == 4) { id(last_action_previous) = id(task_4); id(task_4) = !id(task_4); }
-                  id(finish_card_dismissed) = false;
-                  ESP_LOGI("ui", "SELECT: toggled task %d; previous state=%s", i, id(last_action_previous) ? "done" : "open");
-              - mqtt.publish:
-                  topic: !lambda 'return std::string("todo_3310/state/task/") + std::to_string(id(selected_task)) + "/done";'
-                  payload: !lambda |- 
-                    bool flags[5] = {id(task_0), id(task_1), id(task_2), id(task_3), id(task_4)};
-                    return flags[id(selected_task)] ? "ON" : "OFF";
-                  retain: true
-        - script.execute: scheduled_sleep_cycle
-        - component.update: todo_display
+                  id(slot_done)[s] ^= 1 << i;
+                  ESP_LOGI("ui", "SELECT: toggled task %d of daypart %d; now %s", i, s, (id(slot_done)[s] & (1 << i)) ? "done" : "open");
+              - script.execute:
+                  id: publish_slot_state
+                  slot: !lambda return id(active_slot);
+              - if:
+                  condition:
+                    lambda: |-
+                      const int s = id(active_slot);
+                      const int all = (1 << id(slot_tasks)[s].size()) - 1;
+                      return (id(slot_done)[s] & all) == all;
+                  then:
+                    - rtttl.play: "done:d=16,o=6,b=180:c,e,g,8c7"
+              - component.update: todo_display
+            else:
+              - logger.log: "SELECT: list complete, toggling locked"
 
   - platform: gpio
     pin:
@@ -867,16 +948,23 @@ binary_sensor:
       - delayed_off: 40ms
     on_press:
       then:
-        - lambda: |-
-            int order[5] = {id(display_order_0), id(display_order_1), id(display_order_2), id(display_order_3), id(display_order_4)};
-            int pos = 0;
-            for (int i = 0; i < 5; i++) if (order[i] == id(selected_task)) pos = i;
-            id(selected_task) = order[(pos + 1) % 5];
-            id(finish_card_dismissed) = true;
-            ESP_LOGI("ui", "DOWN: selected task %d", id(selected_task));
         - script.execute: scheduled_sleep_cycle
-        - component.update: todo_display
+        - if:
+            condition:
+              lambda: |-
+                const int s = id(active_slot);
+                const int all = (1 << id(slot_tasks)[s].size()) - 1;
+                return (id(slot_done)[s] & all) != all;
+            then:
+              - lambda: |-
+                  const int count = id(slot_tasks)[id(active_slot)].size();
+                  int pos = 0;
+                  for (int i = 0; i < count; i++) if (id(display_order)[i] == id(selected_task)) pos = i;
+                  id(selected_task) = id(display_order)[(pos + 1) % count];
+                  ESP_LOGI("ui", "DOWN: selected task %d", id(selected_task));
+              - component.update: todo_display
 
+  # TOP undoes the most recent toggle of this awake session (also on a finished list).
   - platform: gpio
     pin:
       number: ${coreink_btn.top.number}
@@ -889,33 +977,23 @@ binary_sensor:
       - delayed_off: 40ms
     on_press:
       then:
-        - lambda: |-
-            const int i = id(last_action_task);
-            if (i < 0 || i > 4) {
-              ESP_LOGI("ui", "TOP: no recent task action to undo");
-            } else {
-              if (i == 0) id(task_0) = id(last_action_previous);
-              else if (i == 1) id(task_1) = id(last_action_previous);
-              else if (i == 2) id(task_2) = id(last_action_previous);
-              else if (i == 3) id(task_3) = id(last_action_previous);
-              else if (i == 4) id(task_4) = id(last_action_previous);
-              id(selected_task) = i;
-              id(last_action_task) = -1;
-              id(finish_card_dismissed) = false;
-              ESP_LOGI("ui", "TOP: undid most recent task toggle");
-            }
+        - script.execute: scheduled_sleep_cycle
         - if:
             condition:
-              lambda: return id(last_action_task) >= 0 && id(last_action_task) <= 4;
+              lambda: return id(last_action_task) >= 0;
             then:
-              - mqtt.publish:
-                  topic: !lambda 'return std::string("todo_3310/state/task/") + std::to_string(id(last_action_task)) + "/done";'
-                  payload: !lambda |- 
-                    bool flags[5] = {id(task_0), id(task_1), id(task_2), id(task_3), id(task_4)};
-                    return flags[id(last_action_task)] ? "ON" : "OFF";
-                  retain: true
-        - script.execute: scheduled_sleep_cycle
-        - component.update: todo_display
+              - lambda: |-
+                  const int i = id(last_action_task);
+                  id(slot_done)[id(active_slot)] ^= 1 << i;
+                  id(selected_task) = i;
+                  id(last_action_task) = -1;
+                  ESP_LOGI("ui", "TOP: undid most recent toggle of task %d", i);
+              - script.execute:
+                  id: publish_slot_state
+                  slot: !lambda return id(active_slot);
+              - component.update: todo_display
+            else:
+              - logger.log: "TOP: no recent task action to undo"
 
 switch:
   - platform: gpio
@@ -938,10 +1016,11 @@ time:
     id: rtc_time
     i2c_id: bus_int
     address: 0x51
+    timezone: ${timezone}
     update_interval: never
   - platform: sntp
     id: sntp_time
-    timezone: Europe/Berlin
+    timezone: ${timezone}
     on_time_sync:
       then:
-        - pcf8563.write_time
+        - pcf8563.write_time: rtc_time

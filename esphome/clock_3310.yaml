@@ -2,6 +2,7 @@ substitutions:
   name: "clock_3310"
   hostname: clock-3310
   friendly_name: "clock_3310"
+  timezone: Europe/Berlin
   coreink_pwr_mos_pin: GPIO12
   epaper:
     type: 1.54inv2
@@ -27,6 +28,8 @@ esphome:
             gpio_deep_sleep_hold_dis();
     - priority: -100
       then:
+        # Show the PCF8563 time right away instead of waiting for SNTP.
+        - pcf8563.read_time: rtc_time
         - delay: 2s
         - component.update: clock_display
 
@@ -46,6 +49,14 @@ wifi:
   password: !secret wifi_password
   fast_connect: true
   reboot_timeout: 0s
+
+# API and OTA keep the always-on clock updatable without USB.
+api:
+  encryption:
+    key: !secret clock_3310_api_key
+
+ota:
+  - platform: esphome
 
 i2c:
   - id: bus_int
@@ -73,10 +84,11 @@ time:
     id: rtc_time
     i2c_id: bus_int
     address: 0x51
+    timezone: ${timezone}
     update_interval: never
   - platform: sntp
     id: sntp_time
-    timezone: Europe/Berlin
+    timezone: ${timezone}
     on_time_sync:
       then:
         - pcf8563.write_time:
@@ -110,6 +122,6 @@ display:
         it.print(100, 76, id(font_medium), COLOR_ON, TextAlign::TOP_CENTER, "TIME SYNC...");
       }
       it.line(8, 176, 192, 176, COLOR_ON);
-      it.print(100, 183, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "ALWAYS ON");
+      it.print(100, 181, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "ALWAYS ON");
 
 # This variant intentionally has no deep_sleep component: keep it powered by USB / adapter.
