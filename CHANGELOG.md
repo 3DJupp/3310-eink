@@ -8,7 +8,17 @@
 - Mark compiler/hardware validation as pending.
 
 
-## Unreleased — dayparts and HA to-do lists
+## Unreleased — display language
+
+- Fixed device texts in German and English, chosen with the new `input_select.todo_3310_language` in HA and sent as `language` in the config. Defaults to German.
+- `clock_3310` gets a "Display language" select (German default) and German labels and weekday names.
+- Fixed the clock showing the wrong weekday (ESPHome counts from 1 = Sunday).
+- German default titles, finish messages and example tasks in the firmware; German defaults set once by a new HA automation on first start.
+- HA helpers no longer use `initial:`, so titles, messages and start times survive HA restarts.
+- Uppercase daypart titles now also uppercase ä, ö and ü.
+- Mockup: switch between German and English display texts.
+
+## dayparts and HA to-do lists
 - Each daypart (morning, midday, evening) now has its own list of up to five tasks. The device shows the list of the active daypart, wakes at each daypart start and resets that list once per day.
 - Tasks are managed in three Home Assistant Local To-do lists; new example dashboard with a to-do card per daypart, device status tiles and schedule settings.
 - New MQTT contract: config version 2 with per-daypart slots, `todo_3310/command/slot/<n>` (consumed by the device) and `todo_3310/state/slot/<n>`. The per-task topics and HA helpers are removed; see the upgrade notes in `docs/DEPLOYMENT.md`.

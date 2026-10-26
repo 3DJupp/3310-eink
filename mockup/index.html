@@ -22,7 +22,7 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 <body><main>
 <header><h1>CoreInk · Checklist and clock</h1><p>Two simple views for the monochrome 200 × 200 pixel display.</p>
 <nav class="firmware-links" aria-label="Firmware and project"><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/todo_3310.yaml">Firmware YAML: checklist</a><a href="https://github.com/3DJupp/3310-eink/blob/main/esphome/clock_3310.yaml">Firmware YAML: clock</a><a href="https://github.com/3DJupp/3310-eink">Project on GitHub</a></nav></header>
-<div class="tabs" role="group" aria-label="Firmware view"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button><span class="sep" aria-hidden="true"></span><span id="slotTabs" style="display:contents"></span></div>
+<div class="tabs" role="group" aria-label="Firmware view"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button><button id="langTab" aria-pressed="false" title="Display language">DE · EN</button><span class="sep" aria-hidden="true"></span><span id="slotTabs" style="display:contents"></span></div>
 <div class="layout">
 <div>
 <section class="device" aria-label="M5Stack CoreInk device preview">
@@ -50,11 +50,20 @@ const svg=body=>`<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" a
 
 // One list per daypart, as configured in the Home Assistant to-do lists.
 const slots=[
- {title:'Morning',start:[6,0],message:'Have a great day!',tasks:['Brush teeth','Take medication','Get dressed','Pack school bag']},
- {title:'Midday',start:[12,0],message:'Enjoy your afternoon!',tasks:['Water plants','Get the mail','Hang up laundry']},
- {title:'Evening',start:[18,0],message:'See you tomorrow!',tasks:['Tidy the kitchen','Brush teeth','Read','Lay out clothes']}];
+ {title:{en:'Morning',de:'Morgens'},start:[6,0],message:{en:'Have a great day!',de:'Schönen Tag!'},
+  tasks:{en:['Brush teeth','Take medication','Get dressed','Pack school bag'],de:['Zähne putzen','Medikamente nehmen','Anziehen','Schultasche packen']}},
+ {title:{en:'Midday',de:'Mittags'},start:[12,0],message:{en:'Enjoy your afternoon!',de:'Schönen Nachmittag!'},
+  tasks:{en:['Water plants','Get the mail','Hang up laundry'],de:['Pflanzen gießen','Post holen','Wäsche aufhängen']}},
+ {title:{en:'Evening',de:'Abends'},start:[18,0],message:{en:'See you tomorrow!',de:'Bis morgen!'},
+  tasks:{en:['Tidy the kitchen','Brush teeth','Read','Lay out clothes'],de:['Küche aufräumen','Zähne putzen','Lesen','Kleidung rauslegen']}}];
+// Display language, set in Home Assistant ("Display language"); the firmware default is German.
+let lang='de';
+const T={en:{done:'All done!',nothing:'Nothing to do',select:'UP/DOWN: SELECT',ok:'PRESS: OK',undo:'TOP: UNDO',next:'NEXT',wake:'SIDE: WAKE',
+ clock:'CLOCK 3310',always:'ALWAYS ON',days:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']},
+ de:{done:'Alles erledigt!',nothing:'Nichts zu tun',select:'AUF/AB: WÄHLEN',ok:'DRÜCKEN: OK',undo:'OBEN: ZURÜCK',next:'NÄCHSTE',wake:'SEITE: WECKEN',
+ clock:'UHR 3310',always:'DAUERBETRIEB',days:['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']}};
 const st={slot:0,done:[0b01,0,0],order:[],selected:0,last:-1,asleep:false};
-const count=()=>slots[st.slot].tasks.length;
+const count=()=>slots[st.slot].tasks[lang].length;
 const isDone=i=>(st.done[st.slot]>>i)&1;
 const complete=()=>{const all=(1<<count())-1;return (st.done[st.slot]&all)===all;};
 // Like refresh_view: open tasks first, then completed ones; fixed for the awake session.
@@ -68,30 +77,30 @@ function todoSvg(){const now=new Date();let o=box(0,0,200,21,ON);
 o+=txt(100,0,15,OFF,pad(now.getHours())+':'+pad(now.getMinutes()),'middle');
 o+=frame(164,3,30,15,OFF)+box(194,7,3,7,OFF)+txt(179,3,10,OFF,'87','middle');
 const s=slots[st.slot],n=count();let done=0;for(let i=0;i<n;i++)done+=isDone(i);const fin=done===n;
-o+=txt(7,23,15,ON,s.title.toUpperCase())+txt(193,23,15,ON,done+'/'+n,'end')+ln(5,45,195,45,ON);
+o+=txt(7,23,15,ON,s.title[lang].toUpperCase())+txt(193,23,15,ON,done+'/'+n,'end')+ln(5,45,195,45,ON);
 if(!fin)st.order.forEach((task,row)=>{const y=49+row*25,sel=!st.asleep&&task===st.selected,fg=sel?OFF:ON;
 if(sel)o+=box(5,y,190,22,ON);o+=frame(10,y+3,15,15,fg);
 if(isDone(task))o+=ln(12,y+10,16,y+14,fg)+ln(16,y+14,23,y+5,fg);
-o+=txt(32,y+2,12,fg,s.tasks[task]);
+o+=txt(32,y+2,12,fg,s.tasks[lang][task]);
 if(isDone(task))o+=`<line class="strike" x1="32.5" y1="${y+12.5}" y2="${y+12.5}" stroke="${fg}" stroke-linecap="square"/>`;else if(sel)o+=`<path d="M183 ${y+6}H191L187 ${y+14}Z" fill="${OFF}"/>`;});
 if(!fin)st.order.forEach((task,i)=>{const x0=8+Math.floor(i*188/n),x1=8+Math.floor((i+1)*188/n)-4;o+=(isDone(task)?box:frame)(x0,175,x1-x0,6,ON);});
 const next=slots[(st.slot+1)%3];
 if(fin){o+=box(25,67,150,69,OFF)+frame(25,67,150,69,ON)+frame(28,70,144,63,ON)
 +`<circle cx="100.5" cy="86.5" r="8" fill="none" stroke="${ON}"/>`+box(96,83,2,3,ON)+box(102,83,2,3,ON)
 +ln(95,90,98,93,ON)+ln(98,93,102,93,ON)+ln(102,93,105,90,ON)
-+txt(100,101,12,ON,n?'All done!':'Nothing to do','middle')+txt(100,117,10,ON,s.message,'middle');}
++txt(100,101,12,ON,n?T[lang].done:T[lang].nothing,'middle')+txt(100,117,10,ON,s.message[lang],'middle');}
 o+=box(0,184,200,16,ON);
-const nextAt='NEXT '+pad(next.start[0])+':'+pad(next.start[1]);
-if(st.asleep)o+=txt(6,185,10,OFF,nextAt)+txt(194,185,10,OFF,'SIDE: WAKE','end');
-else if(fin)o+=txt(6,185,10,OFF,st.last>=0?'TOP: UNDO':nextAt);
-else o+=txt(6,185,10,OFF,'UP/DOWN: SELECT')+txt(194,185,10,OFF,'PRESS: OK','end');
+const nextAt=T[lang].next+' '+pad(next.start[0])+':'+pad(next.start[1]);
+if(st.asleep)o+=txt(6,185,10,OFF,nextAt)+txt(194,185,10,OFF,T[lang].wake,'end');
+else if(fin)o+=txt(6,185,10,OFF,st.last>=0?T[lang].undo:nextAt);
+else o+=txt(6,185,10,OFF,T[lang].select)+txt(194,185,10,OFF,T[lang].ok,'end');
 return svg(o);}
-function clockSvg(){const now=new Date();const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-return svg(box(0,0,200,22,ON)+txt(100,4,12,OFF,'CLOCK 3310','middle')
+function clockSvg(){const now=new Date();const days=T[lang].days;
+return svg(box(0,0,200,22,ON)+txt(100,4,12,OFF,T[lang].clock,'middle')
 +txt(100,47,34,ON,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')
 +txt(100,126,12,ON,pad(now.getDate())+'.'+pad(now.getMonth()+1)+'.'+now.getFullYear(),'middle')
 +txt(100,148,12,ON,days[now.getDay()],'middle')
-+ln(8,176,192,176,ON)+txt(100,181,12,ON,'ALWAYS ON','middle'));}
++ln(8,176,192,176,ON)+txt(100,181,12,ON,T[lang].always,'middle'));}
 
 // Button handling mirrors the firmware: a finished list ignores UP/DOWN/PRESS,
 // TOP undoes only the most recent toggle of the current session. Asleep, only SIDE
@@ -110,8 +119,9 @@ render();}
 
 const todoTab=document.getElementById('todoTab'),clockTab=document.getElementById('clockTab'),slotTabs=document.getElementById('slotTabs');
 let mode='todo';
-slotTabs.innerHTML=slots.map((s,i)=>`<button data-slot="${i}" aria-pressed="false">${s.title} ${pad(s.start[0])}:${pad(s.start[1])}</button>`).join('');
+slotTabs.innerHTML=slots.map((s,i)=>`<button data-slot="${i}" aria-pressed="false">${s.title.en} ${pad(s.start[0])}:${pad(s.start[1])}</button>`).join('');
 function render(){const clock=mode==='clock';
+document.getElementById('langTab').textContent=lang==='de'?'Display: Deutsch':'Display: English';
 todoTab.setAttribute('aria-pressed',String(!clock));clockTab.setAttribute('aria-pressed',String(clock));
 slotTabs.querySelectorAll('button').forEach(b=>{b.hidden=clock;b.setAttribute('aria-pressed',String(+b.dataset.slot===st.slot));});
 document.getElementById('keys').hidden=clock;
@@ -120,8 +130,9 @@ const sc=document.getElementById('screen');sc.innerHTML=clock?clockSvg():todoSvg
 sc.querySelectorAll('line.strike').forEach(l=>{const t=l.previousElementSibling;l.setAttribute('x2',Math.min(32+t.getComputedTextLength(),190)+.5);});
 document.getElementById('detailsTitle').textContent=clock?'Clock · clock_3310':'Checklist · todo_3310';
 document.getElementById('detailsText').textContent=clock?'The clock shows the local time of this browser. It is meant to run on permanent power.':'Each daypart has its own list of up to five tasks, managed as to-do lists in Home Assistant. Try the buttons below the device, or the arrow keys, Enter and Backspace.';
-document.getElementById('detailList').innerHTML=clock?'<li>Shows time, date and weekday.</li><li>Meant for permanent power.</li><li>No deep sleep; the display refreshes every minute.</li><li>The preview uses the browser clock, not the clock of a connected device.</li>':'<li>The device wakes at the start of each daypart, shows that daypart\'s list and resets it once per day.</li><li>Rows are ordered open first, then done, and stay put while the device is awake.</li><li>Once every task is done the finish card stays: UP, DOWN and PRESS are ignored, so nothing can be unchecked from the menu.</li><li>TOP undoes only the most recent toggle of the current wake, for example a slip on the last task.</li><li>The finish card shows the message of its own daypart, for example \'See you tomorrow!\' in the evening.</li><li>Every wakeup starts with a full e-paper refresh; button presses while awake use quick partial refreshes. Right before sleeping the device draws the sleep image with another full refresh, which clears ghosting from the moving selection bar.</li>';
+document.getElementById('detailList').innerHTML=clock?'<li>Shows time, date and weekday.</li><li>Meant for permanent power.</li><li>No deep sleep; the display refreshes every minute.</li><li>The preview uses the browser clock, not the clock of a connected device.</li>':'<li>The device wakes at the start of each daypart, shows that daypart\'s list and resets it once per day.</li><li>Rows are ordered open first, then done, and stay put while the device is awake.</li><li>Once every task is done the finish card stays: UP, DOWN and PRESS are ignored, so nothing can be unchecked from the menu.</li><li>TOP undoes only the most recent toggle of the current wake, for example a slip on the last task.</li><li>All fixed texts on the screen follow the display language chosen in Home Assistant, German or English; switch it with the button above.</li><li>The finish card shows the message of its own daypart, for example \'Bis morgen!\' in the evening.</li><li>Every wakeup starts with a full e-paper refresh; button presses while awake use quick partial refreshes. Right before sleeping the device draws the sleep image with another full refresh, which clears ghosting from the moving selection bar.</li>';
 document.getElementById('metaTodo').textContent=clock?'Not active':'Deep sleep · 3 dayparts';document.getElementById('metaClock').textContent=clock?'Always on · no deep sleep':'USB optional';}
+document.getElementById('langTab').addEventListener('click',()=>{lang=lang==='de'?'en':'de';render();});
 todoTab.addEventListener('click',()=>{mode='todo';render();});clockTab.addEventListener('click',()=>{mode='clock';render();});
 slotTabs.addEventListener('click',e=>{const b=e.target.closest('button');if(b){st.asleep=false;wake(+b.dataset.slot);render();}});
 document.getElementById('keys').addEventListener('click',e=>{const b=e.target.closest('button');if(b)key(b.dataset.key);});

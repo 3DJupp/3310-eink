@@ -8,15 +8,25 @@
 #   todo_3310 Evening  -> todo.todo_3310_evening
 # The first five items of each list are shown on the CoreInk during that daypart.
 
+# No "initial:" on these helpers: HA would reset them to it on every restart. Fresh
+# installs get their defaults once from the "Set defaults" automation below.
 input_text:
-  todo_3310_slot_0_title: {name: "todo_3310 Morning title", initial: "Morning", max: 14}
-  todo_3310_slot_1_title: {name: "todo_3310 Midday title", initial: "Midday", max: 14}
-  todo_3310_slot_2_title: {name: "todo_3310 Evening title", initial: "Evening", max: 14}
-  # Shown on the finish card when that daypart's list is done, in any language,
-  # for example "Bis morgen!" for the evening.
-  todo_3310_wake_0_message: {name: "todo_3310 Morning message", initial: "Have a great day!", max: 32}
-  todo_3310_wake_1_message: {name: "todo_3310 Midday message", initial: "Enjoy your afternoon!", max: 32}
-  todo_3310_wake_2_message: {name: "todo_3310 Evening message", initial: "See you tomorrow!", max: 32}
+  todo_3310_slot_0_title: {name: "todo_3310 Morning title", max: 14}
+  todo_3310_slot_1_title: {name: "todo_3310 Midday title", max: 14}
+  todo_3310_slot_2_title: {name: "todo_3310 Evening title", max: 14}
+  # Shown on the finish card when that daypart's list is done.
+  todo_3310_wake_0_message: {name: "todo_3310 Morning message", max: 32}
+  todo_3310_wake_1_message: {name: "todo_3310 Midday message", max: 32}
+  todo_3310_wake_2_message: {name: "todo_3310 Evening message", max: 32}
+
+# Language of the fixed texts on the CoreInk (finish card, footer, battery warnings).
+input_select:
+  todo_3310_language:
+    name: "todo_3310 Display language"
+    icon: mdi:translate
+    options:
+      - "Deutsch"
+      - "English"
 
 input_boolean:
   todo_3310_config_pending:
@@ -24,9 +34,9 @@ input_boolean:
     icon: mdi:cloud-upload-outline
 
 input_datetime:
-  todo_3310_wake_0: {name: "todo_3310 Morning start", has_date: false, has_time: true, initial: "06:00:00"}
-  todo_3310_wake_1: {name: "todo_3310 Midday start", has_date: false, has_time: true, initial: "12:00:00"}
-  todo_3310_wake_2: {name: "todo_3310 Evening start", has_date: false, has_time: true, initial: "18:00:00"}
+  todo_3310_wake_0: {name: "todo_3310 Morning start", has_date: false, has_time: true}
+  todo_3310_wake_1: {name: "todo_3310 Midday start", has_date: false, has_time: true}
+  todo_3310_wake_2: {name: "todo_3310 Evening start", has_date: false, has_time: true}
 
 mqtt:
   sensor:
@@ -110,7 +120,9 @@ script:
                 'tasks': items | map(attribute='summary') | map('truncate', 32, true, '', 0) | list
               }] %}
             {% endfor %}
-            {{ {'version': 2, 'slots': ns.slots} | tojson }}
+            {{ {'version': 2,
+                'language': 'en' if is_state('input_select.todo_3310_language', 'English') else 'de',
+                'slots': ns.slots} | tojson }}
 
   # Done states of one list, sent after a change in HA. The CoreInk applies it on its next
   # wake by label name and then clears the retained message.
@@ -145,6 +157,46 @@ script:
             {{ {'labels': ns.labels, 'done': ns.done} | tojson }}
 
 automation:
+  # One-time defaults for a fresh install (German texts, 06:00 / 12:00 / 18:00).
+  # Runs only while the morning title is still empty, so later edits are kept.
+  - id: todo_3310_set_defaults
+    alias: "todo_3310 - Set defaults on first start"
+    mode: single
+    triggers:
+      - trigger: homeassistant
+        event: start
+    conditions:
+      - condition: template
+        value_template: "{{ states('input_text.todo_3310_slot_0_title') in ['', 'unknown'] }}"
+    actions:
+      - action: input_datetime.set_datetime
+        target: {entity_id: input_datetime.todo_3310_wake_0}
+        data: {time: "06:00:00"}
+      - action: input_datetime.set_datetime
+        target: {entity_id: input_datetime.todo_3310_wake_1}
+        data: {time: "12:00:00"}
+      - action: input_datetime.set_datetime
+        target: {entity_id: input_datetime.todo_3310_wake_2}
+        data: {time: "18:00:00"}
+      - action: input_text.set_value
+        target: {entity_id: input_text.todo_3310_slot_0_title}
+        data: {value: "Morgens"}
+      - action: input_text.set_value
+        target: {entity_id: input_text.todo_3310_slot_1_title}
+        data: {value: "Mittags"}
+      - action: input_text.set_value
+        target: {entity_id: input_text.todo_3310_slot_2_title}
+        data: {value: "Abends"}
+      - action: input_text.set_value
+        target: {entity_id: input_text.todo_3310_wake_0_message}
+        data: {value: "Schönen Tag!"}
+      - action: input_text.set_value
+        target: {entity_id: input_text.todo_3310_wake_1_message}
+        data: {value: "Schönen Nachmittag!"}
+      - action: input_text.set_value
+        target: {entity_id: input_text.todo_3310_wake_2_message}
+        data: {value: "Bis morgen!"}
+
   - id: todo_3310_publish_config
     alias: "todo_3310 - Send config to CoreInk"
     mode: restart
@@ -165,6 +217,7 @@ automation:
           - input_datetime.todo_3310_wake_0
           - input_datetime.todo_3310_wake_1
           - input_datetime.todo_3310_wake_2
+          - input_select.todo_3310_language
       # Renaming or reordering items does not change a to-do entity's state, so also
       # refresh regularly. The CoreInk ignores a config that did not change.
       - trigger: time_pattern

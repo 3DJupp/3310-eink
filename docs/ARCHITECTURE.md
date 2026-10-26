@@ -21,6 +21,7 @@ Retained JSON published by HA on start, on any change of the lists or helpers, a
 ```json
 {
   "version": 2,
+  "language": "de",
   "slots": [
     {"title": "Morning", "hour": 6, "minute": 0, "message": "Have a great day!",
      "tasks": ["Brush teeth", "Take medication", "Get dressed", "Pack school bag"]},
@@ -58,7 +59,8 @@ JSON in the same shape, published on connect for all three dayparts, after every
 - The row order is rebuilt at boot (open tasks first, then completed ones) and stays fixed while the device is awake.
 - Once every task of the active list is done, the list is locked: the finish card stays and UP, DOWN and PRESS only extend the awake window. TOP still undoes the last toggle if it happened during this wake; after the next wake that undo is gone. The daypart reset or a change in HA reopens tasks.
 - Checking the last open task plays a short jingle.
-- The finish card shows the message of the finished daypart (for example "See you tomorrow!" in the evening). The messages are free text in HA, so they can be in any language. The progress segments are hidden once the list is done.
+- The finish card shows the message of the finished daypart (for example "Bis morgen!" in the evening). The messages are free text in HA, so they can be in any language.
+- The fixed UI texts (finish card, footer hints, battery warnings) come in German and English. `language` in the config (`de` or `en`, from the "Display language" select in HA) picks one; until the first config arrives the firmware uses the `ui_language` substitution (default `de`). The device stores the choice across deep sleep. The progress segments are hidden once the list is done.
 
 ## E-paper refresh
 

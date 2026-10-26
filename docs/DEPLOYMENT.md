@@ -35,7 +35,13 @@ If HA generated different entity IDs, rename them in the entity settings. Add up
 4. Validate the Home Assistant configuration and restart.
 5. Search Developer Tools → States for `todo_3310` entities.
 
-The package defines daypart start times, titles and finish messages, MQTT telemetry, an "active list" sensor, the scripts that send config and list state to the device, and automations for syncing and the daily reset of each list at its daypart start.
+The package defines daypart start times, titles and finish messages, the display language (Deutsch/English), MQTT telemetry, an "active list" sensor, the scripts that send config and list state to the device, and automations for syncing and the daily reset of each list at its daypart start.
+
+On the first start a one-time automation fills in the defaults: 06:00 / 12:00 / 18:00, the titles "Morgens", "Mittags", "Abends" and the messages "Schönen Tag!", "Schönen Nachmittag!", "Bis morgen!". Change them in the dashboard afterwards; the helpers have no `initial:` value, so HA keeps your values across restarts.
+
+### Upgrading from the previous package
+
+The helpers no longer set `initial:` values, which made HA reset titles, messages and start times on every restart. After updating, HA keeps whatever the helpers hold now; the defaults automation does not overwrite them. The new `input_select.todo_3310_language` starts on Deutsch.
 
 ### Upgrading from the five-task version
 
