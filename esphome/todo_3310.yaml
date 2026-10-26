@@ -648,8 +648,11 @@ display:
           }
           it.print(32, y + 2, id(font_sm), fg, labels[task]);
           if (done_flags[task]) {
-            int text_w = (task == 3) ? 87 : (task == 0 ? 65 : (task == 2 ? 54 : (task == 4 ? 49 : 25)));
-            it.line(32, y + 12, 32 + text_w, y + 12, fg);
+            // Measure the rendered label so the strike-through fits any task name.
+            int tx, ty, text_w, text_h;
+            it.get_text_bounds(32, y + 2, labels[task], id(font_sm), TextAlign::TOP_LEFT, &tx, &ty, &text_w, &text_h);
+            const int strike_end = std::min(tx + text_w, 190);
+            if (text_w > 0) it.line(32, y + 12, strike_end, y + 12, fg);
           } else if (is_selected) {
             it.filled_triangle(183, y + 6, 191, y + 6, 187, y + 14, COLOR_OFF);
           }
