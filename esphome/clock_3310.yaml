@@ -112,16 +112,38 @@ display:
       it.fill(COLOR_OFF);
       auto now = id(rtc_time).now();
       it.filled_rectangle(0, 0, 200, 22, COLOR_ON);
-      it.print(100, 4, id(font_small), COLOR_OFF, TextAlign::TOP_CENTER, "CLOCK 3310");
+      // UI language comes from the "Display language" select, which HA can change.
+      const bool de = id(ui_language).active_index().value_or(0) == 0;
+      it.print(100, 4, id(font_small), COLOR_OFF, TextAlign::TOP_CENTER, de ? "UHR 3310" : "CLOCK 3310");
       if (now.is_valid()) {
         it.printf(100, 47, id(font_large), COLOR_ON, TextAlign::TOP_CENTER, "%02d:%02d", now.hour, now.minute);
         it.printf(100, 126, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "%02d.%02d.%04d", now.day_of_month, now.month, now.year);
-        const char *days[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-        it.printf(100, 148, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "%s", days[now.day_of_week % 7]);
+        // ESPHome counts weekdays from 1 = Sunday.
+        const char *days_de[] = {"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"};
+        const char *days_en[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+        const int wd = (now.day_of_week + 6) % 7;
+        it.print(100, 148, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, de ? days_de[wd] : days_en[wd]);
       } else {
-        it.print(100, 76, id(font_medium), COLOR_ON, TextAlign::TOP_CENTER, "TIME SYNC...");
+        it.print(100, 76, id(font_medium), COLOR_ON, TextAlign::TOP_CENTER, de ? "ZEIT-SYNC..." : "TIME SYNC...");
       }
       it.line(8, 176, 192, 176, COLOR_ON);
-      it.print(100, 181, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, "ALWAYS ON");
+      it.print(100, 181, id(font_small), COLOR_ON, TextAlign::TOP_CENTER, de ? "DAUERBETRIEB" : "ALWAYS ON");
 
 # This variant intentionally has no deep_sleep component: keep it powered by USB / adapter.
+
+# Display language, shown in Home Assistant as a select on the device. Kept across reboots.
+select:
+  - platform: template
+    id: ui_language
+    name: "Display language"
+    icon: mdi:translate
+    entity_category: config
+    options:
+      - "Deutsch"
+      - "English"
+    initial_option: "Deutsch"
+    optimistic: true
+    restore_value: true
+    on_value:
+      then:
+        - component.update: clock_display

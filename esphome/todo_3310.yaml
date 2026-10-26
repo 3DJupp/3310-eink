@@ -5,6 +5,8 @@ substitutions:
   manufacturer: M5Stack
   model: CoreInk
   timezone: Europe/Berlin
+  # Device UI language until Home Assistant sends one: de or en.
+  ui_language: de
   coreink_buzzer_pin: GPIO2
   coreink_led_pin: GPIO10
   coreink_battery_pin: GPIO35
@@ -225,6 +227,10 @@ mqtt:
                   }
                 }
               }
+              if (root["language"].is<const char *>()) {
+                const bool de = root["language"].as<std::string>() != "en";
+                if (de != id(ui_de)) { id(ui_de) = de; changed = true; }
+              }
               id(config_changed) = changed;
               ESP_LOGI("ha_sync", "Home Assistant config version %d %s", root["version"] | 0, changed ? "applied" : "unchanged");
               return true;
@@ -344,43 +350,49 @@ globals:
   # Each daypart keeps up to five labels, newline-separated.
   - id: slot_labels_0
     type: std::string
-    initial_value: '"Brush teeth\nTake medication\nGet dressed\nPack school bag"'
+    initial_value: '"Zähne putzen\nMedikamente nehmen\nAnziehen\nSchultasche packen"'
     restore_value: yes
     max_restore_data_length: 254
   - id: slot_labels_1
     type: std::string
-    initial_value: '"Water plants\nGet the mail\nHang up laundry"'
+    initial_value: '"Pflanzen gießen\nPost holen\nWäsche aufhängen"'
     restore_value: yes
     max_restore_data_length: 254
   - id: slot_labels_2
     type: std::string
-    initial_value: '"Tidy the kitchen\nBrush teeth\nRead"'
+    initial_value: '"Küche aufräumen\nZähne putzen\nLesen"'
     restore_value: yes
     max_restore_data_length: 254
   - id: slot_title_0
     type: std::string
-    initial_value: '"Morning"'
+    initial_value: '"Morgens"'
     restore_value: yes
   - id: slot_title_1
     type: std::string
-    initial_value: '"Midday"'
+    initial_value: '"Mittags"'
     restore_value: yes
   - id: slot_title_2
     type: std::string
-    initial_value: '"Evening"'
+    initial_value: '"Abends"'
     restore_value: yes
   # Shown on the finish card of the same daypart.
   - id: wake_message_0
     type: std::string
-    initial_value: '"Have a great day!"'
+    initial_value: '"Schönen Tag!"'
     restore_value: yes
   - id: wake_message_1
     type: std::string
-    initial_value: '"Enjoy your afternoon!"'
+    initial_value: '"Schönen Nachmittag!"'
     restore_value: yes
   - id: wake_message_2
     type: std::string
-    initial_value: '"See you tomorrow!"'
+    initial_value: '"Bis morgen!"'
+    restore_value: yes
+
+  # Device UI language (true = German), set by Home Assistant via the config message.
+  - id: ui_de
+    type: bool
+    initial_value: 'std::string("${ui_language}") != "en"'
     restore_value: yes
 
   # Daypart shown on screen; restored so a boot without valid time keeps the last one.
@@ -682,17 +694,43 @@ display:
         it.print(100, 0, id(font_md), COLOR_OFF, TextAlign::TOP_CENTER, "--:--");
       }
 
-      // Battery outline with the approximate (voltage-derived) percentage inside.
+      // Battery outline filled to the approximate (voltage-derived) level, with the
+      // percentage on top. The number is drawn twice, each time clipped to one side of
+      // the fill edge: black over the white fill, white over the empty part.
       it.rectangle(164, 3, 30, 15, COLOR_OFF);
       it.filled_rectangle(194, 7, 3, 7, COLOR_OFF);
       if (id(battery_percent).has_state()) {
         int batt = (int) id(battery_percent).state;
         if (batt < 0) batt = 0;
         if (batt > 100) batt = 100;
-        it.printf(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "%d", batt);
+        const int in_x = 166, in_y = 5, in_w = 26, in_h = 11;
+        const int fill_w = batt * in_w / 100;
+        if (fill_w > 0) {
+          it.filled_rectangle(in_x, in_y, fill_w, in_h, COLOR_OFF);
+          it.start_clipping(in_x, in_y, in_x + fill_w, in_y + in_h);
+          it.printf(179, 3, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, "%d", batt);
+          it.end_clipping();
+        }
+        if (fill_w < in_w) {
+          it.start_clipping(in_x + fill_w, in_y, in_x + in_w, in_y + in_h);
+          it.printf(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "%d", batt);
+          it.end_clipping();
+        }
       } else {
         it.print(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "--");
       }
+
+      // Fixed UI texts in the language chosen in Home Assistant.
+      const bool de = id(ui_de);
+      const char *t_all_done = de ? "Alles erledigt!" : "All done!";
+      const char *t_nothing = de ? "Nichts zu tun" : "Nothing to do";
+      const char *t_select = de ? "AUF/AB: WÄHLEN" : "UP/DOWN: SELECT";
+      const char *t_ok = de ? "DRÜCKEN: OK" : "PRESS: OK";
+      const char *t_undo = de ? "OBEN: ZURÜCK" : "TOP: UNDO";
+      const char *t_next = de ? "NÄCHSTE %02d:%02d" : "NEXT %02d:%02d";
+      const char *t_wake = de ? "SEITE: WECKEN" : "SIDE: WAKE";
+      const char *t_batt_low = de ? "!! AKKU SCHWACH !!" : "!! BATTERY LOW !!";
+      const char *t_batt_empty = de ? "AKKU LEER - LADEN" : "BATTERY EMPTY - CHARGE";
 
       const bool low_battery = id(battery_percent).has_state() && id(battery_percent).state <= 10.0f;
       const bool critical_battery = id(battery_voltage).has_state() && id(battery_voltage).state <= 3.40f;
@@ -709,7 +747,12 @@ display:
       // above the separator line instead of touching it.
       const std::string titles[3] = {id(slot_title_0), id(slot_title_1), id(slot_title_2)};
       std::string title = titles[slot];
-      for (auto &c : title) c = toupper((unsigned char) c);
+      // Uppercase ASCII and the UTF-8 umlauts ä/ö/ü (0xC3 0xA4.. -> 0xC3 0x84..).
+      for (size_t i = 0; i < title.size(); i++) {
+        const unsigned char c = title[i];
+        if (c == 0xC3 && i + 1 < title.size() && ((unsigned char) title[i + 1] == 0xA4 || (unsigned char) title[i + 1] == 0xB6 || (unsigned char) title[i + 1] == 0xBC)) title[++i] -= 0x20;
+        else title[i] = toupper(c);
+      }
       it.print(7, 23, id(font_md), COLOR_ON, title.c_str());
       it.printf(193, 23, id(font_md), COLOR_ON, TextAlign::TOP_RIGHT, "%d/%d", done, count);
       it.line(5, 45, 195, 45);
@@ -778,7 +821,7 @@ display:
         it.line(95, 90, 98, 93, COLOR_ON);
         it.line(98, 93, 102, 93, COLOR_ON);
         it.line(102, 93, 105, 90, COLOR_ON);
-        it.print(100, 101, id(font_sm), COLOR_ON, TextAlign::TOP_CENTER, count == 0 ? "Nothing to do" : "All done!");
+        it.print(100, 101, id(font_sm), COLOR_ON, TextAlign::TOP_CENTER, count == 0 ? t_nothing : t_all_done);
         // Message of the finished daypart, e.g. "See you tomorrow!" in the evening.
         const std::string messages[3] = {id(wake_message_0), id(wake_message_1), id(wake_message_2)};
         it.print(100, 117, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, messages[slot].c_str());
@@ -789,18 +832,18 @@ display:
       // text keeps a margin to the bottom edge of the physical panel.
       it.filled_rectangle(0, 184, 200, 16, COLOR_ON);
       if (critical_battery) {
-        it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "BATTERY EMPTY - CHARGE");
+        it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, t_batt_empty);
       } else if (low_battery) {
-        it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "!! BATTERY LOW !!");
+        it.print(100, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, t_batt_low);
       } else if (id(going_to_sleep)) {
-        it.printf(6, 185, id(font_xs), COLOR_OFF, "NEXT %02d:%02d", id(wake_hour)[next], id(wake_minute)[next]);
-        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "SIDE: WAKE");
+        it.printf(6, 185, id(font_xs), COLOR_OFF, t_next, id(wake_hour)[next], id(wake_minute)[next]);
+        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, t_wake);
       } else if (complete) {
-        if (id(last_action_task) >= 0) it.print(6, 185, id(font_xs), COLOR_OFF, "TOP: UNDO");
-        else it.printf(6, 185, id(font_xs), COLOR_OFF, "NEXT %02d:%02d", id(wake_hour)[next], id(wake_minute)[next]);
+        if (id(last_action_task) >= 0) it.print(6, 185, id(font_xs), COLOR_OFF, t_undo);
+        else it.printf(6, 185, id(font_xs), COLOR_OFF, t_next, id(wake_hour)[next], id(wake_minute)[next]);
       } else {
-        it.print(6, 185, id(font_xs), COLOR_OFF, "UP/DOWN: SELECT");
-        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "PRESS: OK");
+        it.print(6, 185, id(font_xs), COLOR_OFF, t_select);
+        it.print(194, 185, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, t_ok);
       }
 
 sensor:

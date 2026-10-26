@@ -98,11 +98,13 @@ sections:
     column_span: 2
     cards:
       - type: heading
-        heading: Schedule and texts
+        heading: Schedule, texts and language
         icon: mdi:calendar-clock
       - type: entities
         show_header_toggle: false
         entities:
+          - entity: input_select.todo_3310_language
+            name: Display language
           - type: section
             label: Morning
           - entity: input_datetime.todo_3310_wake_0

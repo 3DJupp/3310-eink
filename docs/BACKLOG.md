@@ -16,7 +16,7 @@
 - [x] Finish jingle when the last open task is checked.
 - [x] Manage tasks in Home Assistant to-do lists with an example dashboard.
 - [x] Full-refresh sleep image (no selection, "SIDE: WAKE") to clear partial-refresh ghosting.
-- [x] Larger centered wake time; battery percentage inside the battery icon.
+- [x] Larger centered wake time; battery icon with fill level and the percentage on top.
 - [x] Finish card shows the finished daypart's own message; progress segments hidden when done.
 
 ## P0 — Required before first reliable release

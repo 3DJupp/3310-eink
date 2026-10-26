@@ -9,6 +9,7 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 ## What it does
 
 - Three dayparts (default morning 06:00, midday 12:00, evening 18:00), each with its **own list of up to five tasks**, a title and a message for the finish card.
+- The display language (German or English) is switched in Home Assistant, no reflash needed. Both firmware variants default to German.
 - The CoreInk wakes at the start of each daypart, shows that daypart's list and resets it once per day. Between dayparts it sleeps; the side button wakes it at any time.
 - Tasks are managed in three Home Assistant **to-do lists**, so you add, rename, reorder and check tasks with the normal to-do card, the companion app or voice.
 - Checking a task on the device updates the HA list and the other way round (the device picks up HA changes on its next wake).
