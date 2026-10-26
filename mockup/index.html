@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>todo_3310 &amp; clock_3310 · CoreInk UI-Vorschau</title>
+<title>todo_3310 &amp; clock_3310 · CoreInk UI preview</title>
 <style>
 :root{color-scheme:light;--ink:#171717;--paper:#f3f1e7;--muted:#69685f}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 15%,#faf9f4,#d9d6cb 72%);color:var(--ink);font:16px/1.45 system-ui,sans-serif;display:grid;place-items:center;padding:24px}
@@ -20,27 +20,27 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 </style>
 </head>
 <body><main>
-<header><h1>CoreInk · Aufgabenliste und Uhr</h1><p>Zwei einfache Ansichten für das monochrome 200 × 200-Pixel-Display.</p><nav class="firmware-links" aria-label="Firmware herunterladen"><a href="../esphome/todo_3310.yaml" download>YAML herunterladen: Aufgabenliste</a><a href="../esphome/clock_3310.yaml" download>YAML herunterladen: Uhr</a></nav></header>
-<div class="tabs" role="group" aria-label="Firmware-Ansicht"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button></div>
+<header><h1>CoreInk · Checklist and clock</h1><p>Two simple views for the monochrome 200 × 200 pixel display.</p><nav class="firmware-links" aria-label="Download firmware"><a href="../esphome/todo_3310.yaml" download>Download YAML: checklist</a><a href="../esphome/clock_3310.yaml" download>Download YAML: clock</a></nav></header>
+<div class="tabs" role="group" aria-label="Firmware view"><button id="todoTab" aria-pressed="true">todo_3310</button><button id="clockTab" aria-pressed="false">clock_3310</button></div>
 <div class="layout">
-<section class="device" aria-label="M5Stack CoreInk-Gerätevorschau">
-<div class="screen" id="screen" role="img" aria-label="Displayvorschau 200 × 200 Pixel"></div><i class="screw tl" aria-hidden="true"></i><i class="screw tr" aria-hidden="true"></i><i class="screw bl" aria-hidden="true"></i><i class="screw br" aria-hidden="true"></i><div class="button" aria-hidden="true"></div>
+<section class="device" aria-label="M5Stack CoreInk device preview">
+<div class="screen" id="screen" role="img" aria-label="Display preview, 200 × 200 pixels"></div><i class="screw tl" aria-hidden="true"></i><i class="screw tr" aria-hidden="true"></i><i class="screw bl" aria-hidden="true"></i><i class="screw br" aria-hidden="true"></i><div class="button" aria-hidden="true"></div>
 </section>
-<section class="details"><h2 id="detailsTitle">todo_3310 · To-do-Liste</h2>
-<p id="detailsText">Beispielaufgaben für den Alltag. Die Texte lassen sich in der Konfiguration anpassen.</p>
-<ul id="detailList"><li>Fünf Beispielaufgaben; Namen und Erledigt-Status sind hier nur zur Vorschau eingetragen.</li><li>Die Ansicht zeigt Statuszeile, Überschrift, fünf Aufgaben, Fortschritt und Fußzeile.</li><li>Die Uhrzeiten einzelner Aufgaben sind noch nicht Teil der Firmware-Anzeige.</li><li>Der vollständige Display-Refresh nach RTC-Aufwecken ist noch offen und muss getestet werden.</li></ul>
-<div class="meta"><div><strong>Aufgabenliste</strong><span>Mit Energiesparmodus</span></div><div><strong>Uhr</strong><span>Für dauerhafte Stromversorgung</span></div></div>
-<p class="small" id="note">Dies ist eine Vorschau im Browser, kein Foto des laufenden Geräts. Die Firmware ist experimentell; vor dem Flashen bitte mit ESPHome prüfen.</p>
+<section class="details"><h2 id="detailsTitle">Checklist · todo_3310</h2>
+<p id="detailsText">Example everyday tasks. The labels can be changed in the configuration.</p>
+<ul id="detailList"></ul>
+<div class="meta"><div><strong>Checklist</strong><span>Deep sleep · schedule</span></div><div><strong>Clock</strong><span>USB optional</span></div></div>
+<p class="small" id="note">This is a browser preview, not a photo of the running device. The firmware is experimental; validate it with ESPHome before flashing.</p>
 </section></div>
 </main>
 <script>
 const todoTab=document.getElementById('todoTab'),clockTab=document.getElementById('clockTab');
 function setMode(mode){const clock=mode==='clock';todoTab.setAttribute('aria-pressed',String(!clock));clockTab.setAttribute('aria-pressed',String(clock));
 renderScreen(clock);
-document.getElementById('detailsTitle').textContent=clock?'Uhr · clock_3310':'Aufgabenliste · todo_3310';
-document.getElementById('detailsText').textContent=clock?'Die Uhr zeigt die aktuelle lokale Zeit dieses Browsers. Für den Betrieb ist eine dauerhafte Stromversorgung vorgesehen.':'Beispielaufgaben für den Alltag. Die Texte lassen sich in der Konfiguration anpassen.';
-document.getElementById('detailList').innerHTML=clock?'<li>Zeigt Uhrzeit, Datum und Wochentag.</li><li>Für dauerhafte Stromversorgung vorgesehen.</li><li>Kein Deep Sleep; das Display wird regelmäßig aktualisiert.</li><li>Die Vorschau nutzt die Browser-Uhr, nicht die Uhr eines angeschlossenen Geräts.</li>':'<li>Fünf Beispielaufgaben mit Erledigt-Status.</li><li>Die Anzeige zeigt Statuszeile, Überschrift, Aufgaben, Fortschritt und Fußzeile.</li><li>Aufgaben-Uhrzeiten werden in der aktuellen Firmware noch nicht einzeln angezeigt.</li><li>Der vollständige Refresh nach RTC-Aufwecken ist noch offen und muss getestet werden.</li>';
-document.querySelector('.meta div:first-child span').textContent=clock?'Nicht aktiv':'Deep Sleep · Zeitplan';document.querySelector('.meta div:last-child span').textContent=clock?'Dauerbetrieb · kein Deep Sleep':'USB optional';
+document.getElementById('detailsTitle').textContent=clock?'Clock · clock_3310':'Checklist · todo_3310';
+document.getElementById('detailsText').textContent=clock?'The clock shows the local time of this browser. It is meant to run on permanent power.':'Example everyday tasks. The labels can be changed in the configuration.';
+document.getElementById('detailList').innerHTML=clock?'<li>Shows time, date and weekday.</li><li>Meant for permanent power.</li><li>No deep sleep; the display refreshes regularly.</li><li>The preview uses the browser clock, not the clock of a connected device.</li>':'<li>Five example tasks with done state.</li><li>The screen shows status bar, title, tasks, progress and footer.</li><li>Once all tasks are done the list is locked: PRESS no longer unchecks tasks, TOP still undoes the last toggle.</li><li>Per-task times are not shown by the current firmware.</li><li>The full refresh after an RTC wakeup is still open and needs testing.</li>';
+document.querySelector('.meta div:first-child span').textContent=clock?'Not active':'Deep sleep · schedule';document.querySelector('.meta div:last-child span').textContent=clock?'Always on · no deep sleep':'USB optional';
 }
 // The screen is drawn as an SVG with a 200x200 viewBox using the same pixel
 // coordinates as the firmware lambdas, so it scales with the bezel instead of
@@ -53,7 +53,7 @@ const ln=(x1,y1,x2,y2,c)=>`<line x1="${x1+.5}" y1="${y1+.5}" x2="${x2+.5}" y2="$
 // ESPHome prints from the glyph top; the baseline sits about one font size lower.
 const txt=(x,y,size,c,t,align='start')=>`<text x="${x}" y="${y+size}" font-size="${size}" fill="${c}" text-anchor="${align}">${esc(t)}</text>`;
 const svg=body=>`<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`;
-const demo={labels:['Pflanzen gießen','Post holen','Wäsche aufhängen','Küche aufräumen','Lesen'],done:[true,false,false,false,true],selected:1,order:[1,2,3,0,4],batt:87,bars:3};
+const demo={labels:['Water plants','Get the mail','Hang up laundry','Tidy the kitchen','Read'],done:[true,false,false,false,true],selected:1,order:[1,2,3,0,4],batt:87,bars:3};
 function todoSvg(){const now=new Date();let o=box(0,0,200,21,ON);
 [[5,14,4],[10,11,7],[15,8,10],[20,5,13]].forEach(([x,y,h],i)=>o+=(i<demo.bars?box:frame)(x,y,3,h,OFF));
 o+=txt(91,3,10,OFF,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')+txt(151,3,10,OFF,demo.batt+'%','end');
@@ -66,14 +66,14 @@ if(demo.done[task])o+=ln(12,y+10,16,y+14,fg)+ln(16,y+14,23,y+5,fg);
 o+=txt(32,y+2,12,fg,demo.labels[task]);
 if(demo.done[task])o+=`<line class="strike" x1="32.5" y1="${y+12.5}" y2="${y+12.5}" stroke="${fg}" stroke-linecap="square"/>`;else if(sel)o+=`<path d="M183 ${y+6}H191L187 ${y+14}Z" fill="${OFF}"/>`;});
 demo.order.forEach((task,i)=>o+=(demo.done[task]?box:frame)(8+i*38,180,34,7,ON));
-o+=box(0,188,200,12,ON)+txt(6,189,10,OFF,'UP/DOWN: WAHL')+txt(194,189,10,OFF,'PRESS: OK','end');
+o+=box(0,188,200,12,ON)+txt(6,189,10,OFF,'UP/DOWN: SELECT')+txt(194,189,10,OFF,'PRESS: OK','end');
 return svg(o);}
-function clockSvg(){const now=new Date();const days=['So','Mo','Di','Mi','Do','Fr','Sa'];
+function clockSvg(){const now=new Date();const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 return svg(box(0,0,200,22,ON)+txt(100,4,12,OFF,'CLOCK 3310','middle')
 +txt(100,47,34,ON,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')
 +txt(100,126,12,ON,pad(now.getDate())+'.'+pad(now.getMonth()+1)+'.'+now.getFullYear(),'middle')
 +txt(100,148,12,ON,days[now.getDay()],'middle')
-+ln(8,176,192,176,ON)+txt(100,183,12,ON,'DAUERBETRIEB','middle'));}
++ln(8,176,192,176,ON)+txt(100,183,12,ON,'ALWAYS ON','middle'));}
 let lastMinute=-1;
 function tickClock(){const now=new Date();if(now.getMinutes()===lastMinute)return;lastMinute=now.getMinutes();renderScreen(clockTab.getAttribute('aria-pressed')==='true');}
 // Like the firmware's get_text_bounds call: each strike-through spans its measured label.

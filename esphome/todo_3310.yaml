@@ -14,11 +14,11 @@ substitutions:
     morning:
       hour: "6"
       minute: "0"
-      message: "Bis morgens"
+      message: "See you tomorrow"
     evening:
       hour: "18"
       minute: "0"
-      message: "Bis später"
+      message: "See you later"
   coreink_btn:
     stick:
       up:
@@ -289,9 +289,9 @@ rtttl:
   output: buzzer_output
   gain: 30%
 
-# Alltagstest: konfigurierbare Morgen-/Abend-Wakeups; morgens Reset, abends Fortschritt erhalten.
-# Der einzelne Wake-up-Pin wird direkt aus der zentralen Button-Definition gelesen: coreink_btn.side.
-# UP/DOWN/PRESS bleiben Navigation/Listenbedienung im Wachzustand; Multi-Pin ANY_LOW bleibt geparkt.
+# Daily use: configurable morning/evening wakeups; morning resets the list, evening keeps progress.
+# The single wakeup pin is read from the central button definition: coreink_btn.side.
+# UP/DOWN/PRESS stay list navigation/interaction while awake; multi-pin ANY_LOW is parked for now.
 deep_sleep:
   id: deep_sleep_battery
   # Classic ESP32: use one active-LOW RTC GPIO. Pin and polarity come from coreink_btn.side.
@@ -352,23 +352,23 @@ globals:
   # Labels are runtime-configurable from Home Assistant over retained MQTT.
   - id: task_label_0
     type: std::string
-    initial_value: '"Pflanzen gießen"'
+    initial_value: '"Water plants"'
     restore_value: yes
   - id: task_label_1
     type: std::string
-    initial_value: '"Post holen"'
+    initial_value: '"Get the mail"'
     restore_value: yes
   - id: task_label_2
     type: std::string
-    initial_value: '"Wäsche aufhängen"'
+    initial_value: '"Hang up laundry"'
     restore_value: yes
   - id: task_label_3
     type: std::string
-    initial_value: '"Küche aufräumen"'
+    initial_value: '"Tidy the kitchen"'
     restore_value: yes
   - id: task_label_4
     type: std::string
-    initial_value: '"Lesen"'
+    initial_value: '"Read"'
     restore_value: yes
   - id: wake_hour_0
     type: int
@@ -396,15 +396,15 @@ globals:
     restore_value: yes
   - id: wake_message_0
     type: std::string
-    initial_value: '"Guten Morgen"'
+    initial_value: '"Good morning"'
     restore_value: yes
   - id: wake_message_1
     type: std::string
-    initial_value: '"Mittagszeit"'
+    initial_value: '"Lunchtime"'
     restore_value: yes
   - id: wake_message_2
     type: std::string
-    initial_value: '"Bis später"'
+    initial_value: '"See you later"'
     restore_value: yes
 
   - id: selected_task
@@ -680,7 +680,7 @@ display:
         it.line(95, 90, 98, 93, COLOR_ON);
         it.line(98, 93, 102, 93, COLOR_ON);
         it.line(102, 93, 105, 90, COLOR_ON);
-        it.print(100, 103, id(font_sm), COLOR_ON, TextAlign::TOP_CENTER, "Alles erledigt!");
+        it.print(100, 103, id(font_sm), COLOR_ON, TextAlign::TOP_CENTER, "All done!");
         if (now.is_valid()) {
           const int secs = now.hour * 3600 + now.minute * 60 + now.second;
           const int wake_s[3] = {id(wake_hour_0)*3600 + id(wake_minute_0)*60, id(wake_hour_1)*3600 + id(wake_minute_1)*60, id(wake_hour_2)*3600 + id(wake_minute_2)*60};
@@ -689,21 +689,21 @@ display:
           const std::string messages[3] = {id(wake_message_0), id(wake_message_1), id(wake_message_2)};
           it.print(100, 120, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, messages[next].c_str());
         } else {
-          it.print(100, 120, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, "Bis zum nächsten Wake");
+          it.print(100, 120, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, "Until the next wake");
         }
       }
 
       // Footer doubles as a persistent low-battery warning; tasks remain visible.
       it.filled_rectangle(0, 188, 200, 12, COLOR_ON);
       if (critical_battery) {
-        it.print(100, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "AKKU LEER - LADEN");
+        it.print(100, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "BATTERY EMPTY - CHARGE");
       } else if (low_battery) {
-        it.print(100, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "!! AKKU SCHWACH !!");
+        it.print(100, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "!! BATTERY LOW !!");
       } else if (done == 5) {
         it.print(6, 189, id(font_xs), COLOR_OFF, "TOP: UNDO");
         it.print(194, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "SIDE: WAKE");
       } else {
-        it.print(6, 189, id(font_xs), COLOR_OFF, "UP/DOWN: WAHL");
+        it.print(6, 189, id(font_xs), COLOR_OFF, "UP/DOWN: SELECT");
         it.print(194, 189, id(font_xs), COLOR_OFF, TextAlign::TOP_RIGHT, "PRESS: OK");
       }
 
@@ -825,22 +825,33 @@ binary_sensor:
       - delayed_off: 40ms
     on_press:
       then:
-        - lambda: |-
-            const int i = id(selected_task);
-            id(last_action_task) = i;
-            if (i == 0) { id(last_action_previous) = id(task_0); id(task_0) = !id(task_0); }
-            else if (i == 1) { id(last_action_previous) = id(task_1); id(task_1) = !id(task_1); }
-            else if (i == 2) { id(last_action_previous) = id(task_2); id(task_2) = !id(task_2); }
-            else if (i == 3) { id(last_action_previous) = id(task_3); id(task_3) = !id(task_3); }
-            else if (i == 4) { id(last_action_previous) = id(task_4); id(task_4) = !id(task_4); }
-            id(finish_card_dismissed) = false;
-            ESP_LOGI("ui", "SELECT: toggled task %d; previous state=%s", i, id(last_action_previous) ? "done" : "open");
-        - mqtt.publish:
-            topic: !lambda 'return std::string("todo_3310/state/task/") + std::to_string(id(selected_task)) + "/done";'
-            payload: !lambda |- 
-              bool flags[5] = {id(task_0), id(task_1), id(task_2), id(task_3), id(task_4)};
-              return flags[id(selected_task)] ? "ON" : "OFF";
-            retain: true
+        # Once every task is done the list is locked: PRESS only brings the finish card
+        # back instead of unchecking a task. TOP still undoes the last toggle, and the
+        # morning reset or Home Assistant reopen tasks.
+        - if:
+            condition:
+              lambda: return id(task_0) && id(task_1) && id(task_2) && id(task_3) && id(task_4);
+            then:
+              - lambda: |-
+                  id(finish_card_dismissed) = false;
+                  ESP_LOGI("ui", "SELECT: list complete, toggling locked");
+            else:
+              - lambda: |-
+                  const int i = id(selected_task);
+                  id(last_action_task) = i;
+                  if (i == 0) { id(last_action_previous) = id(task_0); id(task_0) = !id(task_0); }
+                  else if (i == 1) { id(last_action_previous) = id(task_1); id(task_1) = !id(task_1); }
+                  else if (i == 2) { id(last_action_previous) = id(task_2); id(task_2) = !id(task_2); }
+                  else if (i == 3) { id(last_action_previous) = id(task_3); id(task_3) = !id(task_3); }
+                  else if (i == 4) { id(last_action_previous) = id(task_4); id(task_4) = !id(task_4); }
+                  id(finish_card_dismissed) = false;
+                  ESP_LOGI("ui", "SELECT: toggled task %d; previous state=%s", i, id(last_action_previous) ? "done" : "open");
+              - mqtt.publish:
+                  topic: !lambda 'return std::string("todo_3310/state/task/") + std::to_string(id(selected_task)) + "/done";'
+                  payload: !lambda |- 
+                    bool flags[5] = {id(task_0), id(task_1), id(task_2), id(task_3), id(task_4)};
+                    return flags[id(selected_task)] ? "ON" : "OFF";
+                  retain: true
         - script.execute: scheduled_sleep_cycle
         - component.update: todo_display
 
