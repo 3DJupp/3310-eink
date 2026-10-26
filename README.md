@@ -75,7 +75,14 @@ The demo screen is an SVG with a 200 × 200 viewBox that reuses the pixel coordi
 
 Never commit real `secrets.yaml`, Wi-Fi credentials, MQTT passwords, API encryption keys or certificates. Keep the broker authenticated and restricted to your local network.
 
-Funding links are available via Ko-fi and Buy Me a Coffee (see GitHub's **Sponsor** button).
+## Support
+
+If this project is useful to you, you can support its development:
+
+<p>
+  <a href="https://ko-fi.com/3djupp"><img src="https://img.shields.io/badge/Ko--fi-Support%20me-FF5E5B?logo=kofi&logoColor=white" alt="Support me on Ko-fi"></a>
+  <a href="https://buymeacoffee.com/3djupp"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20me-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a>
+</p>
 
 ## License
 

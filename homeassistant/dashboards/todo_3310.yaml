@@ -5,7 +5,9 @@
 # homeassistant/packages/todo_3310.yaml.
 title: Checklist
 path: todo_3310
-icon: mdi:checklist
+# Built-in Material Design Icon. With the Material Symbols custom integration (HACS)
+# installed, m3of:checklist-rtl works too.
+icon: mdi:format-list-checks
 type: sections
 max_columns: 4
 badges:

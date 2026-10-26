@@ -51,6 +51,17 @@ The per-task helpers `input_text.todo_3310_task_<n>_label` and `input_boolean.to
 
 The file `homeassistant/dashboards/todo_3310.yaml` is a single dashboard **view**, not a whole dashboard. Open a dashboard (or create one under Settings → Dashboards), choose the pencil, add a view or open an existing one, then the view's three-dot menu → **Edit in YAML**, and replace everything with the file. Pasting it into the view editor as a whole dashboard (with `views:`) shows an empty view, and HA appends `cards: []`. It uses only built-in cards: one to-do card per daypart with its start time, device status tiles and the schedule and text helpers.
 
+### Optional: NFC tag on the case opens the dashboard
+
+The CoreInk cannot read NFC itself, but a passive NFC sticker on or in the case can open the dashboard on a phone. Use the Home Assistant Companion app's deep link instead of a browser URL: it uses the server address configured in the app, so it also works away from home, and it opens the app rather than a browser that would need to log in.
+
+The link is `homeassistant://navigate/<dashboard-path>/<view-path>`. With the view from this repository on the default dashboard that is `homeassistant://navigate/lovelace/todo_3310`; for another dashboard, take the path from its URL in the browser.
+
+- **Android:** write the link as a URI record to the tag with an NFC writer app (for example NFC Tools). Holding the phone to the tag opens the view.
+- **iPhone:** iOS does not open custom links from tags in the background. Create a personal automation in the Shortcuts app with the trigger **NFC** (scan the tag), the action **Open URLs** with the link above, and set it to run immediately.
+
+A tag written this way opens the view but does not fire a Home Assistant `tag_scanned` event. To use the same tag for an HA automation as well, write it from HA (Settings → Tags) instead; it then fires the event but does not open this view.
+
 ## Configure ESPHome
 
 1. Copy `esphome/todo_3310.yaml` into your ESPHome configuration directory.
