@@ -17,6 +17,7 @@
 - HA helpers no longer use `initial:`, so titles, messages and start times survive HA restarts.
 - Uppercase daypart titles now also uppercase ä, ö and ü.
 - Mockup: switch between German and English display texts.
+- Battery icon fills to the battery level; the percentage on top switches between black and white at the fill edge so it stays readable at any level. The mockup has a battery slider to try it.
 
 ## dayparts and HA to-do lists
 - Each daypart (morning, midday, evening) now has its own list of up to five tasks. The device shows the list of the active daypart, wakes at each daypart start and resets that list once per day.

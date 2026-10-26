@@ -694,14 +694,28 @@ display:
         it.print(100, 0, id(font_md), COLOR_OFF, TextAlign::TOP_CENTER, "--:--");
       }
 
-      // Battery outline with the approximate (voltage-derived) percentage inside.
+      // Battery outline filled to the approximate (voltage-derived) level, with the
+      // percentage on top. The number is drawn twice, each time clipped to one side of
+      // the fill edge: black over the white fill, white over the empty part.
       it.rectangle(164, 3, 30, 15, COLOR_OFF);
       it.filled_rectangle(194, 7, 3, 7, COLOR_OFF);
       if (id(battery_percent).has_state()) {
         int batt = (int) id(battery_percent).state;
         if (batt < 0) batt = 0;
         if (batt > 100) batt = 100;
-        it.printf(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "%d", batt);
+        const int in_x = 166, in_y = 5, in_w = 26, in_h = 11;
+        const int fill_w = batt * in_w / 100;
+        if (fill_w > 0) {
+          it.filled_rectangle(in_x, in_y, fill_w, in_h, COLOR_OFF);
+          it.start_clipping(in_x, in_y, in_x + fill_w, in_y + in_h);
+          it.printf(179, 3, id(font_xs), COLOR_ON, TextAlign::TOP_CENTER, "%d", batt);
+          it.end_clipping();
+        }
+        if (fill_w < in_w) {
+          it.start_clipping(in_x + fill_w, in_y, in_x + in_w, in_y + in_h);
+          it.printf(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "%d", batt);
+          it.end_clipping();
+        }
       } else {
         it.print(179, 3, id(font_xs), COLOR_OFF, TextAlign::TOP_CENTER, "--");
       }

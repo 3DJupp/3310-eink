@@ -14,7 +14,7 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 .screen{position:relative;width:100%;aspect-ratio:1;background:#c9c9c9;border:5px solid #e6e6e6;outline:1px solid #bdbdbd;border-radius:5px;box-shadow:inset 0 0 0 1px #b4b4b4,0 0 0 2px #f8f8f8;overflow:hidden}
 .screen svg{display:block;width:100%;height:100%}.screen text{font-family:"Segoe UI Semibold","Segoe UI",system-ui,sans-serif;font-weight:650}.screen rect,.screen line,.screen path{shape-rendering:crispEdges}
 .screw{position:absolute;width:15%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fff 0 35%,#c8c8c8 39% 48%,#f4f4f4 54% 66%,#c6c6c6 72%,#eee 78%);box-shadow:inset 0 1px 3px #999}.screw.tl{top:2%;left:2%}.screw.tr{top:2%;right:2%}.screw.bl{bottom:2%;left:2%}.screw.br{bottom:2%;right:2%}
-.keys{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px auto 0;max-width:360px}.keys button{padding:7px 13px;font-size:.88rem}.keys[hidden]{display:none}
+.keys{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px auto 0;max-width:360px}.keys button{padding:7px 13px;font-size:.88rem}.keys[hidden]{display:none}.keys .batt{display:flex;align-items:center;gap:6px;font-size:.88rem;font-weight:650}.keys .batt input{width:110px}
 .details h2{font-size:1.12rem;margin:0 0 10px}.details p{color:#555}.details ul{padding-left:19px;margin:12px 0}.details li{margin:8px 0}.small{font-size:.85rem;color:#5b5a53}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.meta div{border:1px solid #ffffffc7;background:#ffffff65;border-radius:12px;padding:10px 12px}.meta strong{display:block;font-size:.82rem}.meta span{font-size:.8rem;color:#595850}
 @media(max-width:620px){body{padding:16px}.layout{grid-template-columns:1fr;max-width:390px;margin:auto}.device{max-width:300px}.details{padding:0 4px}}
 </style>
@@ -28,7 +28,7 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 <section class="device" aria-label="M5Stack CoreInk device preview">
 <div class="screen" id="screen" role="img" aria-label="Display preview, 200 × 200 pixels"></div><i class="screw tl" aria-hidden="true"></i><i class="screw tr" aria-hidden="true"></i><i class="screw bl" aria-hidden="true"></i><i class="screw br" aria-hidden="true"></i>
 </section>
-<div class="keys" id="keys" role="group" aria-label="Device buttons"><button data-key="up">▲ UP</button><button data-key="press">● PRESS</button><button data-key="down">▼ DOWN</button><button data-key="top">TOP · undo</button><button data-key="sleep">Let it sleep</button><button data-key="side">SIDE · wake</button><button data-key="reset">Reset demo</button></div>
+<div class="keys" id="keys" role="group" aria-label="Device buttons"><button data-key="up">▲ UP</button><button data-key="press">● PRESS</button><button data-key="down">▼ DOWN</button><button data-key="top">TOP · undo</button><button data-key="sleep">Let it sleep</button><button data-key="side">SIDE · wake</button><button data-key="reset">Reset demo</button><label class="batt">Battery <input id="battRange" type="range" min="0" max="100" value="48" aria-label="Battery level"></label></div>
 </div>
 <section class="details"><h2 id="detailsTitle"></h2><p id="detailsText"></p><ul id="detailList"></ul>
 <div class="meta"><div><strong>Checklist</strong><span id="metaTodo"></span></div><div><strong>Clock</strong><span id="metaClock"></span></div></div>
@@ -62,7 +62,7 @@ const T={en:{done:'All done!',nothing:'Nothing to do',select:'UP/DOWN: SELECT',o
  clock:'CLOCK 3310',always:'ALWAYS ON',days:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']},
  de:{done:'Alles erledigt!',nothing:'Nichts zu tun',select:'AUF/AB: WÄHLEN',ok:'DRÜCKEN: OK',undo:'OBEN: ZURÜCK',next:'NÄCHSTE',wake:'SEITE: WECKEN',
  clock:'UHR 3310',always:'DAUERBETRIEB',days:['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']}};
-const st={slot:0,done:[0b01,0,0],order:[],selected:0,last:-1,asleep:false};
+const st={slot:0,done:[0b01,0,0],order:[],selected:0,last:-1,asleep:false,batt:48};
 const count=()=>slots[st.slot].tasks[lang].length;
 const isDone=i=>(st.done[st.slot]>>i)&1;
 const complete=()=>{const all=(1<<count())-1;return (st.done[st.slot]&all)===all;};
@@ -75,7 +75,11 @@ slots.forEach((s,i)=>{const sm=s.start[0]*60+s.start[1];if(sm<=m&&sm>b){a=i;b=sm
 function todoSvg(){const now=new Date();let o=box(0,0,200,21,ON);
 [[5,14,4],[10,11,7],[15,8,10],[20,5,13]].forEach(([x,y,h],i)=>o+=(i<3?box:frame)(x,y,3,h,OFF));
 o+=txt(100,0,15,OFF,pad(now.getHours())+':'+pad(now.getMinutes()),'middle');
-o+=frame(164,3,30,15,OFF)+box(194,7,3,7,OFF)+txt(179,3,10,OFF,'87','middle');
+// Battery fill with the number drawn twice, each copy clipped to one side of the fill edge.
+const fillW=Math.floor(st.batt*26/100),bt=String(st.batt);
+o+=frame(164,3,30,15,OFF)+box(194,7,3,7,OFF)+box(166,5,fillW,11,OFF)
++`<clipPath id="bf"><rect x="166" y="5" width="${fillW}" height="11"/></clipPath><clipPath id="be"><rect x="${166+fillW}" y="5" width="${26-fillW}" height="11"/></clipPath>`
++`<g clip-path="url(#bf)">${txt(179,3,10,ON,bt,'middle')}</g><g clip-path="url(#be)">${txt(179,3,10,OFF,bt,'middle')}</g>`;
 const s=slots[st.slot],n=count();let done=0;for(let i=0;i<n;i++)done+=isDone(i);const fin=done===n;
 o+=txt(7,23,15,ON,s.title[lang].toUpperCase())+txt(193,23,15,ON,done+'/'+n,'end')+ln(5,45,195,45,ON);
 if(!fin)st.order.forEach((task,row)=>{const y=49+row*25,sel=!st.asleep&&task===st.selected,fg=sel?OFF:ON;
@@ -132,6 +136,7 @@ document.getElementById('detailsTitle').textContent=clock?'Clock · clock_3310':
 document.getElementById('detailsText').textContent=clock?'The clock shows the local time of this browser. It is meant to run on permanent power.':'Each daypart has its own list of up to five tasks, managed as to-do lists in Home Assistant. Try the buttons below the device, or the arrow keys, Enter and Backspace.';
 document.getElementById('detailList').innerHTML=clock?'<li>Shows time, date and weekday.</li><li>Meant for permanent power.</li><li>No deep sleep; the display refreshes every minute.</li><li>The preview uses the browser clock, not the clock of a connected device.</li>':'<li>The device wakes at the start of each daypart, shows that daypart\'s list and resets it once per day.</li><li>Rows are ordered open first, then done, and stay put while the device is awake.</li><li>Once every task is done the finish card stays: UP, DOWN and PRESS are ignored, so nothing can be unchecked from the menu.</li><li>TOP undoes only the most recent toggle of the current wake, for example a slip on the last task.</li><li>All fixed texts on the screen follow the display language chosen in Home Assistant, German or English; switch it with the button above.</li><li>The finish card shows the message of its own daypart, for example \'Bis morgen!\' in the evening.</li><li>Every wakeup starts with a full e-paper refresh; button presses while awake use quick partial refreshes. Right before sleeping the device draws the sleep image with another full refresh, which clears ghosting from the moving selection bar.</li>';
 document.getElementById('metaTodo').textContent=clock?'Not active':'Deep sleep · 3 dayparts';document.getElementById('metaClock').textContent=clock?'Always on · no deep sleep':'USB optional';}
+document.getElementById('battRange').addEventListener('input',e=>{st.batt=+e.target.value;render();});
 document.getElementById('langTab').addEventListener('click',()=>{lang=lang==='de'?'en':'de';render();});
 todoTab.addEventListener('click',()=>{mode='todo';render();});clockTab.addEventListener('click',()=>{mode='clock';render();});
 slotTabs.addEventListener('click',e=>{const b=e.target.closest('button');if(b){st.asleep=false;wake(+b.dataset.slot);render();}});
