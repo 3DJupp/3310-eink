@@ -36,7 +36,7 @@ main{width:min(100%,900px)}header{margin-bottom:24px}h1{font-size:clamp(1.35rem,
 <script>
 const todoTab=document.getElementById('todoTab'),clockTab=document.getElementById('clockTab');
 function setMode(mode){const clock=mode==='clock';todoTab.setAttribute('aria-pressed',String(!clock));clockTab.setAttribute('aria-pressed',String(clock));
-document.getElementById('screen').innerHTML=clock?clockSvg():todoSvg();
+renderScreen(clock);
 document.getElementById('detailsTitle').textContent=clock?'Uhr · clock_3310':'Aufgabenliste · todo_3310';
 document.getElementById('detailsText').textContent=clock?'Die Uhr zeigt die aktuelle lokale Zeit dieses Browsers. Für den Betrieb ist eine dauerhafte Stromversorgung vorgesehen.':'Beispielaufgaben für den Alltag. Die Texte lassen sich in der Konfiguration anpassen.';
 document.getElementById('detailList').innerHTML=clock?'<li>Zeigt Uhrzeit, Datum und Wochentag.</li><li>Für dauerhafte Stromversorgung vorgesehen.</li><li>Kein Deep Sleep; das Display wird regelmäßig aktualisiert.</li><li>Die Vorschau nutzt die Browser-Uhr, nicht die Uhr eines angeschlossenen Geräts.</li>':'<li>Fünf Beispielaufgaben mit Erledigt-Status.</li><li>Die Anzeige zeigt Statuszeile, Überschrift, Aufgaben, Fortschritt und Fußzeile.</li><li>Aufgaben-Uhrzeiten werden in der aktuellen Firmware noch nicht einzeln angezeigt.</li><li>Der vollständige Refresh nach RTC-Aufwecken ist noch offen und muss getestet werden.</li>';
@@ -60,12 +60,11 @@ o+=txt(91,3,10,OFF,pad(now.getHours())+':'+pad(now.getMinutes()),'middle')+txt(1
 o+=frame(160,4,26,13,OFF)+box(186,8,3,5,OFF)+box(162,6,Math.floor(demo.batt*22/100),9,OFF);
 const done=demo.done.filter(Boolean).length;
 o+=txt(7,25,20,ON,'TODO')+txt(193,27,15,ON,done+'/5','end')+ln(5,47,195,47,ON);
-const strike=[65,25,54,87,49];
 demo.order.forEach((task,row)=>{const y=51+row*25,sel=task===demo.selected,fg=sel?OFF:ON;
 if(sel)o+=box(5,y,190,22,ON);o+=frame(10,y+3,15,15,fg);
 if(demo.done[task])o+=ln(12,y+10,16,y+14,fg)+ln(16,y+14,23,y+5,fg);
 o+=txt(32,y+2,12,fg,demo.labels[task]);
-if(demo.done[task])o+=ln(32,y+12,32+strike[task],y+12,fg);else if(sel)o+=`<path d="M183 ${y+6}H191L187 ${y+14}Z" fill="${OFF}"/>`;});
+if(demo.done[task])o+=`<line class="strike" x1="32.5" y1="${y+12.5}" y2="${y+12.5}" stroke="${fg}" stroke-linecap="square"/>`;else if(sel)o+=`<path d="M183 ${y+6}H191L187 ${y+14}Z" fill="${OFF}"/>`;});
 demo.order.forEach((task,i)=>o+=(demo.done[task]?box:frame)(8+i*38,180,34,7,ON));
 o+=box(0,188,200,12,ON)+txt(6,189,10,OFF,'UP/DOWN: WAHL')+txt(194,189,10,OFF,'PRESS: OK','end');
 return svg(o);}
@@ -76,6 +75,9 @@ return svg(box(0,0,200,22,ON)+txt(100,4,12,OFF,'CLOCK 3310','middle')
 +txt(100,148,12,ON,days[now.getDay()],'middle')
 +ln(8,176,192,176,ON)+txt(100,183,12,ON,'DAUERBETRIEB','middle'));}
 let lastMinute=-1;
-function tickClock(){const now=new Date();if(now.getMinutes()===lastMinute)return;lastMinute=now.getMinutes();document.getElementById('screen').innerHTML=clockTab.getAttribute('aria-pressed')==='true'?clockSvg():todoSvg();}
+function tickClock(){const now=new Date();if(now.getMinutes()===lastMinute)return;lastMinute=now.getMinutes();renderScreen(clockTab.getAttribute('aria-pressed')==='true');}
+// Like the firmware's get_text_bounds call: each strike-through spans its measured label.
+function renderScreen(clock){const s=document.getElementById('screen');s.innerHTML=clock?clockSvg():todoSvg();
+s.querySelectorAll('line.strike').forEach(l=>{const t=l.previousElementSibling;l.setAttribute('x2',Math.min(32+t.getComputedTextLength(),190)+.5);});}
 todoTab.addEventListener('click',()=>setMode('todo'));clockTab.addEventListener('click',()=>setMode('clock'));setInterval(tickClock,1000);setMode('todo');
 </script></body></html>
