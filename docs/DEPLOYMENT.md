@@ -43,7 +43,7 @@ The per-task helpers `input_text.todo_3310_task_<n>_label` and `input_boolean.to
 
 ## Add the dashboard
 
-Settings → Dashboards → Add dashboard → New dashboard from scratch. Open it, choose the pencil, then the three-dot menu → Raw configuration editor, and paste `homeassistant/dashboards/todo_3310.yaml`. It uses only built-in cards: one to-do card per daypart with its start time, device status tiles and the schedule and text helpers.
+The file `homeassistant/dashboards/todo_3310.yaml` is a single dashboard **view**, not a whole dashboard. Open a dashboard (or create one under Settings → Dashboards), choose the pencil, add a view or open an existing one, then the view's three-dot menu → **Edit in YAML**, and replace everything with the file. Pasting it into the view editor as a whole dashboard (with `views:`) shows an empty view, and HA appends `cards: []`. It uses only built-in cards: one to-do card per daypart with its start time, device status tiles and the schedule and text helpers.
 
 ## Configure ESPHome
 

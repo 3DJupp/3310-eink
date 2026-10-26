@@ -1,145 +1,144 @@
-# todo_3310 - example dashboard (Settings -> Dashboards -> Add dashboard -> New dashboard
-# from scratch -> open it -> pencil -> three dots -> Raw configuration editor -> paste).
+# todo_3310 - example dashboard view. This file is ONE view, not a whole dashboard.
+# Settings -> Dashboards -> open (or create) a dashboard -> pencil -> add a view or edit
+# an existing one -> three dots -> Edit in YAML -> replace everything with this file.
 # Uses only built-in cards. Needs the package and the three Local To-do lists described in
 # homeassistant/packages/todo_3310.yaml.
-title: todo_3310
-views:
-  - title: Checklist
-    path: todo_3310
-    icon: mdi:checklist
-    type: sections
-    max_columns: 4
-    badges:
-      - type: entity
-        entity: sensor.todo_3310_active_list
-        name: On screen
-        show_name: true
-      - type: entity
+title: Checklist
+path: todo_3310
+icon: mdi:checklist
+type: sections
+max_columns: 4
+badges:
+  - type: entity
+    entity: sensor.todo_3310_active_list
+    name: On screen
+    show_name: true
+  - type: entity
+    entity: binary_sensor.todo_3310_online
+    name: CoreInk
+    show_name: true
+  - type: entity
+    entity: sensor.todo_3310_battery_mqtt
+    name: Battery
+    show_name: true
+  - type: entity
+    entity: input_boolean.todo_3310_config_pending
+    name: Sending
+    show_name: true
+    visibility:
+      - condition: state
+        entity: input_boolean.todo_3310_config_pending
+        state: "on"
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Morning
+        icon: mdi:weather-sunset-up
+        badges:
+          - type: entity
+            entity: input_datetime.todo_3310_wake_0
+            show_icon: false
+            show_state: true
+      - type: todo-list
+        entity: todo.todo_3310_morning
+        display_order: manual
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Midday
+        icon: mdi:white-balance-sunny
+        badges:
+          - type: entity
+            entity: input_datetime.todo_3310_wake_1
+            show_icon: false
+            show_state: true
+      - type: todo-list
+        entity: todo.todo_3310_midday
+        display_order: manual
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Evening
+        icon: mdi:weather-night
+        badges:
+          - type: entity
+            entity: input_datetime.todo_3310_wake_2
+            show_icon: false
+            show_state: true
+      - type: todo-list
+        entity: todo.todo_3310_evening
+        display_order: manual
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: CoreInk
+        icon: mdi:tablet
+      - type: tile
         entity: binary_sensor.todo_3310_online
-        name: CoreInk
-        show_name: true
-      - type: entity
+        name: MQTT
+        grid_options: {columns: 6}
+      - type: tile
         entity: sensor.todo_3310_battery_mqtt
         name: Battery
-        show_name: true
-      - type: entity
-        entity: input_boolean.todo_3310_config_pending
-        name: Sending
-        show_name: true
-        visibility:
-          - condition: state
-            entity: input_boolean.todo_3310_config_pending
-            state: "on"
-    sections:
-      - type: grid
-        cards:
-          - type: heading
-            heading: Morning
-            icon: mdi:weather-sunset-up
-            badges:
-              - type: entity
-                entity: input_datetime.todo_3310_wake_0
-                show_icon: false
-                show_state: true
-          - type: todo-list
-            entity: todo.todo_3310_morning
-            display_order: manual
+        grid_options: {columns: 6}
+      - type: tile
+        entity: sensor.todo_3310_last_seen
+        name: Last seen
+        grid_options: {columns: 12}
+      - type: tile
+        entity: sensor.todo_3310_seconds_to_wakeup
+        name: Sleep at last check-in
+        grid_options: {columns: 12}
 
-      - type: grid
-        cards:
-          - type: heading
-            heading: Midday
-            icon: mdi:white-balance-sunny
-            badges:
-              - type: entity
-                entity: input_datetime.todo_3310_wake_1
-                show_icon: false
-                show_state: true
-          - type: todo-list
-            entity: todo.todo_3310_midday
-            display_order: manual
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: Schedule and texts
+        icon: mdi:calendar-clock
+      - type: entities
+        show_header_toggle: false
+        entities:
+          - type: section
+            label: Morning
+          - entity: input_datetime.todo_3310_wake_0
+            name: Start
+          - entity: input_text.todo_3310_slot_0_title
+            name: Title on screen
+          - entity: input_text.todo_3310_wake_0_message
+            name: Message when done
+          - type: section
+            label: Midday
+          - entity: input_datetime.todo_3310_wake_1
+            name: Start
+          - entity: input_text.todo_3310_slot_1_title
+            name: Title on screen
+          - entity: input_text.todo_3310_wake_1_message
+            name: Message when done
+          - type: section
+            label: Evening
+          - entity: input_datetime.todo_3310_wake_2
+            name: Start
+          - entity: input_text.todo_3310_slot_2_title
+            name: Title on screen
+          - entity: input_text.todo_3310_wake_2_message
+            name: Message when done
 
-      - type: grid
-        cards:
-          - type: heading
-            heading: Evening
-            icon: mdi:weather-night
-            badges:
-              - type: entity
-                entity: input_datetime.todo_3310_wake_2
-                show_icon: false
-                show_state: true
-          - type: todo-list
-            entity: todo.todo_3310_evening
-            display_order: manual
-
-      - type: grid
-        cards:
-          - type: heading
-            heading: CoreInk
-            icon: mdi:tablet
-          - type: tile
-            entity: binary_sensor.todo_3310_online
-            name: MQTT
-            grid_options: {columns: 6}
-          - type: tile
-            entity: sensor.todo_3310_battery_mqtt
-            name: Battery
-            grid_options: {columns: 6}
-          - type: tile
-            entity: sensor.todo_3310_last_seen
-            name: Last seen
-            grid_options: {columns: 12}
-          - type: tile
-            entity: sensor.todo_3310_seconds_to_wakeup
-            name: Sleep at last check-in
-            grid_options: {columns: 12}
-
-      - type: grid
-        column_span: 2
-        cards:
-          - type: heading
-            heading: Schedule and texts
-            icon: mdi:calendar-clock
-          - type: entities
-            show_header_toggle: false
-            entities:
-              - type: section
-                label: Morning
-              - entity: input_datetime.todo_3310_wake_0
-                name: Start
-              - entity: input_text.todo_3310_slot_0_title
-                name: Title on screen
-              - entity: input_text.todo_3310_wake_0_message
-                name: Message when done
-              - type: section
-                label: Midday
-              - entity: input_datetime.todo_3310_wake_1
-                name: Start
-              - entity: input_text.todo_3310_slot_1_title
-                name: Title on screen
-              - entity: input_text.todo_3310_wake_1_message
-                name: Message when done
-              - type: section
-                label: Evening
-              - entity: input_datetime.todo_3310_wake_2
-                name: Start
-              - entity: input_text.todo_3310_slot_2_title
-                name: Title on screen
-              - entity: input_text.todo_3310_wake_2_message
-                name: Message when done
-
-      - type: grid
-        column_span: 2
-        cards:
-          - type: heading
-            heading: How it syncs
-            heading_style: subtitle
-          - type: markdown
-            content: >-
-              The CoreInk shows the **first five items** of the list whose daypart is
-              active and resets that list once per day when the daypart starts.
-              The device sleeps between dayparts, so changes made here reach it on its
-              next wakeup or when someone presses the side button. When a list is
-              done, its own "message when done" is shown, so write it in the language
-              the device is used in.
+  - type: grid
+    column_span: 2
+    cards:
+      - type: heading
+        heading: How it syncs
+        heading_style: subtitle
+      - type: markdown
+        content: >-
+          The CoreInk shows the **first five items** of the list whose daypart is
+          active and resets that list once per day when the daypart starts.
+          The device sleeps between dayparts, so changes made here reach it on its
+          next wakeup or when someone presses the side button. When a list is
+          done, its own "message when done" is shown, so write it in the language
+          the device is used in.
