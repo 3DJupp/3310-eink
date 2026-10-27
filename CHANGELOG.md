@@ -22,6 +22,8 @@
 - README "Support" section with Ko-fi and Buy Me a Coffee badges; funding links in the demo page footer.
 - Deployment guide: optional NFC tag on the case that opens the dashboard view through the Companion app.
 - GitHub Pages start page opens the demo instead of a rendered copy of the README; the demo page gets a short intro, a setup-guide link and a "how it works" strip. README shows two demo screenshots and a prominent demo link.
+- Static IP for both devices from new secrets (`todo_3310_ip`, `clock_3310_ip`, `wifi_gateway`, `wifi_subnet`, `wifi_dns`). Skipping DHCP shortens every wake of `todo_3310`. **Breaking:** add these secrets, or delete the `manual_ip:` block to keep DHCP.
+- Mockup device frame rebuilt from the CoreInk case model.
 - Battery icon fills to the battery level; the percentage on top switches between black and white at the fill edge so it stays readable at any level. The mockup has a battery slider to try it.
 
 ## dayparts and HA to-do lists

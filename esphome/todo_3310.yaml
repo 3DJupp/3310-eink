@@ -122,6 +122,13 @@ wifi:
   password: !secret wifi_password
   fast_connect: true
   reboot_timeout: 0s
+  # A static IP skips DHCP on every wake, which shortens each wake and saves battery.
+  # Remove the manual_ip block to fall back to DHCP.
+  manual_ip:
+    static_ip: !secret todo_3310_ip
+    gateway: !secret wifi_gateway
+    subnet: !secret wifi_subnet
+    dns1: !secret wifi_dns
 
 # MQTT carries the retained Home Assistant configuration and the checklist state.
 # Topics (slot = daypart 0..2):
