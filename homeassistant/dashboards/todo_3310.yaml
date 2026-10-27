@@ -141,7 +141,7 @@ sections:
       - type: markdown
         content: >-
           The CoreInk shows the **first five items** of the list whose daypart is
-          active and resets that list once per day when the daypart starts.
+          active. All three lists are reset once a day, when the first daypart starts.
           The device sleeps between dayparts, so changes made here reach it on its
           next wakeup or when someone presses the side button. When a list is
           done, its own "message when done" is shown, so write it in the language

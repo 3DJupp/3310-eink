@@ -10,6 +10,7 @@
 
 ## Unreleased — display language
 
+- All three lists are now reset once a day at the first daypart start (device and HA), instead of each list at its own start. Yesterday's evening ticks no longer stay visible during the day, and tasks can be ticked ahead of their daypart.
 - Fixed device texts in German and English, chosen with the new `input_select.todo_3310_language` in HA and sent as `language` in the config. Defaults to German.
 - `clock_3310` gets a "Display language" select (German default) and German labels and weekday names.
 - Fixed the clock showing the wrong weekday (ESPHome counts from 1 = Sunday).

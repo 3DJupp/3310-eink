@@ -289,11 +289,12 @@ automation:
                     item: "{{ repeat.item.uid }}"
                     status: "{{ wanted }}"
 
-  # The CoreInk resets the active daypart list on its own when it wakes; mirror that here
-  # and drop any unapplied command for the list so it cannot re-check yesterday's tasks.
+  # A new day starts with the first daypart: all three lists are reset once. The CoreInk
+  # does the same on its own when it wakes. Unapplied commands are dropped so they cannot
+  # re-check yesterday's tasks.
   - id: todo_3310_daypart_reset
-    alias: "todo_3310 - Reset list at daypart start"
-    mode: queued
+    alias: "todo_3310 - Reset all lists at the first daypart start"
+    mode: single
     triggers:
       - trigger: time
         at: input_datetime.todo_3310_wake_0
@@ -304,24 +305,33 @@ automation:
       - trigger: time
         at: input_datetime.todo_3310_wake_2
         id: "2"
-    variables:
-      entity: "{{ ['todo.todo_3310_morning', 'todo.todo_3310_midday', 'todo.todo_3310_evening'][trigger.id | int] }}"
+    conditions:
+      # Only the earliest of the three start times starts a new day.
+      - condition: template
+        value_template: >-
+          {% set t = [states('input_datetime.todo_3310_wake_0'), states('input_datetime.todo_3310_wake_1'), states('input_datetime.todo_3310_wake_2')] %}
+          {{ t[trigger.id | int] == t | min }}
     actions:
-      - action: mqtt.publish
-        data:
-          topic: "todo_3310/command/slot/{{ trigger.id }}"
-          payload: ""
-          retain: true
-      - action: todo.get_items
-        target: {entity_id: "{{ entity }}"}
-        data:
-          status: completed
-        response_variable: lists
       - repeat:
-          for_each: "{{ lists[entity]['items'] if entity in lists else [] }}"
+          for_each: [0, 1, 2]
           sequence:
-            - action: todo.update_item
+            - variables:
+                entity: "{{ ['todo.todo_3310_morning', 'todo.todo_3310_midday', 'todo.todo_3310_evening'][repeat.item] }}"
+            - action: mqtt.publish
+              data:
+                topic: "todo_3310/command/slot/{{ repeat.item }}"
+                payload: ""
+                retain: true
+            - action: todo.get_items
               target: {entity_id: "{{ entity }}"}
               data:
-                item: "{{ repeat.item.uid }}"
-                status: needs_action
+                status: completed
+              response_variable: lists
+            - repeat:
+                for_each: "{{ lists[entity]['items'] if entity in lists else [] }}"
+                sequence:
+                  - action: todo.update_item
+                    target: {entity_id: "{{ entity }}"}
+                    data:
+                      item: "{{ repeat.item.uid }}"
+                      status: needs_action
