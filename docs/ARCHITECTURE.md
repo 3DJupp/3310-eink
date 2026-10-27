@@ -8,9 +8,9 @@ Home Assistant is the configuration UI: three to-do lists (one per daypart) hold
 
 There are three dayparts (slot 0..2, default morning 06:00, midday 12:00, evening 18:00). The active daypart is the one that started most recently; before the first start of the day, yesterday's latest daypart is still active.
 
-On every boot the firmware reads the PCF8563 RTC (the ESP32's own clock drifts during deep sleep), picks the active daypart and resets its list if that daypart started today and was not reset yet today. Only the active list is shown. Before going to sleep it schedules the next wake 20 seconds after the next daypart start, so a slightly slow RTC still lands in the new daypart.
+On every boot the firmware reads the PCF8563 RTC (the ESP32's own clock drifts during deep sleep), picks the active daypart and, once per day after the first daypart has started, resets all three lists. Only the active list is shown. Resetting everything at the start of the day (instead of each list at its own start) means yesterday's evening ticks do not stay visible all day, and a task can be ticked ahead of its daypart without being cleared when the daypart starts. Before going to sleep it schedules the next wake 20 seconds after the next daypart start, so a slightly slow RTC still lands in the new daypart.
 
-Home Assistant resets the matching to-do list at the same start time, so both sides agree even when the device is asleep.
+Home Assistant resets all three to-do lists at the earliest of the three start times, so both sides agree even when the device is asleep.
 
 ## MQTT contract
 

@@ -303,7 +303,7 @@ rtttl:
   gain: 30%
 
 # Daily use: three dayparts (morning, midday, evening), each with its own task list.
-# The device wakes at the start of every daypart and resets that daypart's list once per day.
+# The device wakes at the start of every daypart; all lists reset once per day at the first one.
 # The single wakeup pin is read from the central button definition: coreink_btn.side.
 # UP/DOWN/PRESS stay list navigation/interaction while awake; multi-pin ANY_LOW is parked for now.
 deep_sleep:
@@ -332,7 +332,8 @@ globals:
     type: std::array<int, 3>
     initial_value: "{0, 0, 0}"
     restore_value: yes
-  # Local calendar day (YYYYMMDD) on which each daypart list was last reset.
+  # Local calendar day (YYYYMMDD) on which each daypart list was last reset (all at the
+  # first daypart start of the day).
   - id: slot_reset_day
     type: std::array<int, 3>
     initial_value: "{-1, -1, -1}"
@@ -457,7 +458,7 @@ globals:
     restore_value: no
 
 script:
-  # Pick the active daypart from the RTC, reset its list once per day, parse labels and
+  # Pick the active daypart from the RTC, reset all lists once per day, parse labels and
   # rebuild the row order: open tasks first, then completed ones, each in list order.
   - id: refresh_view
     mode: queued
@@ -493,10 +494,16 @@ script:
             }
             const bool started_today = active >= 0;
             if (!started_today) active = latest;
-            if (started_today && id(slot_reset_day)[active] != day_key) {
-              id(slot_done)[active] = 0;
-              id(slot_reset_day)[active] = day_key;
-              ESP_LOGI("tasks", "Daypart %d list reset for %04d-%02d-%02d", active, now.year, now.month, now.day_of_month);
+            // A new day starts with the first daypart: reset all three lists once, so
+            // yesterday's evening ticks do not linger and tasks can be ticked ahead of
+            // their daypart without being cleared when it starts.
+            if (started_today) {
+              for (int s = 0; s < 3; s++) {
+                if (id(slot_reset_day)[s] == day_key) continue;
+                id(slot_done)[s] = 0;
+                id(slot_reset_day)[s] = day_key;
+                ESP_LOGI("tasks", "Daypart %d list reset for %04d-%02d-%02d", s, now.year, now.month, now.day_of_month);
+              }
             }
             id(active_slot) = active;
           } else {
