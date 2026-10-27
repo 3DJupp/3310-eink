@@ -67,12 +67,13 @@ A tag written this way opens the view but does not fire a Home Assistant `tag_sc
 1. Copy `esphome/todo_3310.yaml` into your ESPHome configuration directory.
 2. Put the font file `segoeuithibd.ttf` into a `fonts/` folder next to it, or change the three `font:` entries to a font you have (for example `gfonts://Roboto`). Layout spacing is tuned for Segoe UI metrics.
 3. Copy the key names from `examples/secrets.example.yaml` into your local `secrets.yaml`, then replace every example value. Never commit the real secrets file.
-4. Check the `timezone` substitution (default `Europe/Berlin`).
-5. Ensure the MQTT broker hostname/IP is reachable from the CoreInk network.
-6. Run ESPHome Validate / `esphome config todo_3310.yaml` and fix all errors before flashing.
-7. After boot, check the MQTT topics and confirm `todo_3310/state/config_applied` is published.
+4. Pick a free static IP for each device outside your router's DHCP range and set `todo_3310_ip`, `clock_3310_ip`, `wifi_gateway`, `wifi_subnet` and `wifi_dns`. Without DHCP each wake connects faster, which saves battery. To use DHCP instead, delete the `manual_ip:` block under `wifi:`.
+5. Check the `timezone` substitution (default `Europe/Berlin`).
+6. Ensure the MQTT broker hostname/IP is reachable from the CoreInk network.
+7. Run ESPHome Validate / `esphome config todo_3310.yaml` and fix all errors before flashing.
+8. After boot, check the MQTT topics and confirm `todo_3310/state/config_applied` is published.
 
-`esphome/clock_3310.yaml` needs only Wi-Fi and `clock_3310_api_key`; its font comes from Google Fonts.
+`esphome/clock_3310.yaml` needs only the Wi-Fi secrets (including `clock_3310_ip`) and `clock_3310_api_key`; its font comes from Google Fonts.
 
 ## MQTT topics
 
