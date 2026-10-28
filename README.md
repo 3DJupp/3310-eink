@@ -16,12 +16,12 @@ Press the device buttons, switch dayparts, language and battery level. The scree
 ## On real hardware
 
 <p align="center">
-  <img src="docs/images/hardware-list.jpg" width="300" alt="CoreInk on a bathroom radiator showing the BAD list with three of five tasks done">
+  <img src="docs/images/hardware-list.jpg" width="300" alt="CoreInk sleep image: MORGEN list with three of five tasks done, next wake 12:00">
   &nbsp;
   <img src="docs/images/hardware-nfc.jpg" width="300" alt="Opened CoreInk with a round NFC sticker on the back of the e-paper panel">
 </p>
 
-Left: the bathroom list on a CoreInk mounted to a towel radiator. Right: in my build a passive NFC sticker sits behind the e-paper panel inside the case. Holding a phone to the front of the device opens the dashboard view in the Home Assistant app; see [NFC tag in the deployment guide](docs/DEPLOYMENT.md#optional-nfc-tag-on-the-case-opens-the-dashboard). The CoreInk itself does not read NFC, the sticker works on its own.
+Left: the sleep image after the morning, with the next wake time and `SEITE: WECKEN` at the bottom. Right: in my build a passive NFC sticker sits behind the e-paper panel inside the case. Holding a phone to the front of the device opens the dashboard view in the Home Assistant app; see [NFC tag in the deployment guide](docs/DEPLOYMENT.md#optional-nfc-tag-on-the-case-opens-the-dashboard). The CoreInk itself does not read NFC, the sticker works on its own.
 
 ## What it does
 
