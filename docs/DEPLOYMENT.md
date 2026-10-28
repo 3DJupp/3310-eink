@@ -60,6 +60,8 @@ The link is `homeassistant://navigate/<dashboard-path>/<view-path>`. With the vi
 - **Android:** write the link as a URI record to the tag with an NFC writer app (for example NFC Tools). Holding the phone to the tag opens the view.
 - **iPhone:** iOS does not open custom links from tags in the background. Create a personal automation in the Shortcuts app with the trigger **NFC** (scan the tag), the action **Open URLs** with the link above, and set it to run immediately.
 
+A round sticker fits behind the e-paper panel inside the CoreInk case and can still be read through the front of the device.
+
 A tag written this way opens the view but does not fire a Home Assistant `tag_scanned` event. To use the same tag for an HA automation as well, write it from HA (Settings → Tags) instead; it then fires the event but does not open this view.
 
 ## Configure ESPHome
