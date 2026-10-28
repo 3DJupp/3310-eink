@@ -11,7 +11,17 @@ Retro Nokia 3310-inspired monochrome e-paper projects for the M5Stack CoreInk, E
 <p align="center"><b><a href="https://3djupp.github.io/3310-eink/">▶ Try the interactive demo</a></b><br>
 Press the device buttons, switch dayparts, language and battery level. The screen is drawn from the same 200 × 200 pixel coordinates as the firmware.</p>
 
-> **Status: experimental.** Both firmware files pass `esphome config` and `esphome compile` with ESPHome 2026.10, but have not been tested end to end on CoreInk hardware yet. Run ESPHome Validate before flashing.
+> **Status: experimental.** Both firmware files pass `esphome config` and `esphome compile` with ESPHome 2026.10, and `todo_3310` runs daily on the author's CoreInk. It has not been tested on other setups yet, so run ESPHome Validate before flashing.
+
+## On real hardware
+
+<p align="center">
+  <img src="docs/images/hardware-list.jpg" width="300" alt="CoreInk on a bathroom radiator showing the BAD list with three of five tasks done">
+  &nbsp;
+  <img src="docs/images/hardware-nfc.jpg" width="300" alt="Opened CoreInk with a round NFC sticker on the back of the e-paper panel">
+</p>
+
+Left: the bathroom list on a CoreInk mounted to a towel radiator. Right: in my build a passive NFC sticker sits behind the e-paper panel inside the case. Holding a phone to the front of the device opens the dashboard view in the Home Assistant app; see [NFC tag in the deployment guide](docs/DEPLOYMENT.md#optional-nfc-tag-on-the-case-opens-the-dashboard). The CoreInk itself does not read NFC, the sticker works on its own.
 
 ## What it does
 
@@ -35,7 +45,7 @@ Press the device buttons, switch dayparts, language and battery level. The scree
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — MQTT contract and sync behavior
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — open work
 - [`mockup/index.html`](mockup/index.html) — source of the live demo; the root [`index.html`](index.html) forwards the GitHub Pages start page to it
-- [`docs/images/`](docs/images) — screenshots of the demo used in this README
+- [`docs/images/`](docs/images) — demo screenshots and hardware photos used in this README
 
 ## Quick start
 
