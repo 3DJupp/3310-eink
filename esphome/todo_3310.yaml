@@ -85,6 +85,51 @@ esphome:
         # PCF8563 before deciding which daypart is active. This runs before MQTT connects,
         # so the state reported on connect already includes the daypart reset.
         - pcf8563.read_time: rtc_time
+        # Calibrate the sleep timer and catch early timer wakes. Runs before Wi-Fi, MQTT
+        # and the display start, so an early wake costs only a second of CPU time.
+        - lambda: |-
+            const uint32_t start = id(sleep_start_epoch);
+            const uint32_t target = id(sleep_target_epoch);
+            const uint32_t timer_ms = id(sleep_timer_ms);
+            id(sleep_start_epoch) = 0;  // one measurement per sleep
+            auto now = id(rtc_time).now();
+            if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER || !now.is_valid() || start == 0 || target <= start) return;
+            const int64_t actual_s = (int64_t) now.timestamp - start;
+            // Short sleeps are too coarse for the RTC's 1 s resolution.
+            if (timer_ms >= 30UL * 60 * 1000 && actual_s > 0) {
+              const float measured = (timer_ms / 1000.0f) / actual_s;
+              if (measured > 0.85f && measured < 1.2f) {
+                // First measurement after a power loss replaces the default, later ones are smoothed.
+                const float old_scale = id(sleep_timer_scale);
+                id(sleep_timer_scale) = old_scale == 1.0f ? measured : 0.5f * old_scale + 0.5f * measured;
+                ESP_LOGI("sleep", "Timer slept %.0f s for %lld real s; scale %.4f -> %.4f", timer_ms / 1000.0f, (long long) actual_s, old_scale, id(sleep_timer_scale));
+              } else {
+                ESP_LOGW("sleep", "Ignoring implausible timer ratio %.4f", measured);
+              }
+            }
+            // The planned wake is ${wake_margin_s} s after a daypart start. Woken before that
+            // start: sleep again for the rest without Wi-Fi, MQTT or a display refresh.
+            const int64_t remaining_s = (int64_t) target - now.timestamp;
+            if (remaining_s <= ${wake_margin_s}) return;
+            const uint32_t ms = (uint32_t) (remaining_s * 1000.0f * id(sleep_timer_scale));
+            ESP_LOGI("sleep", "Timer woke %lld s early; sleeping again for %u ms", (long long) (remaining_s - ${wake_margin_s}), (unsigned) ms);
+            id(sleep_start_epoch) = now.timestamp;
+            id(sleep_timer_ms) = ms;
+            // Store the globals now: the usual shutdown hooks would touch Wi-Fi, MQTT and the
+            // display, which are not set up yet.
+            sleep_timer_scale->update();
+            sleep_start_epoch->update();
+            sleep_timer_ms->update();
+            global_preferences->sync();
+            // Same wake setup as the deep_sleep component: SIDE button (GPIO27, active LOW)
+            // or the timer, with the power-hold pin kept high.
+            gpio_hold_en(GPIO_NUM_12);
+            gpio_sleep_set_direction(GPIO_NUM_27, GPIO_MODE_INPUT);
+            gpio_hold_en(GPIO_NUM_27);
+            gpio_deep_sleep_hold_en();
+            esp_sleep_enable_ext0_wakeup(GPIO_NUM_27, 0);
+            esp_sleep_enable_timer_wakeup((uint64_t) ms * 1000ULL);
+            esp_deep_sleep_start();
         - script.execute: refresh_view
     - priority: -100
       then:
@@ -446,6 +491,29 @@ globals:
     type: int
     initial_value: "3600000"
 
+  # Deep-sleep timer calibration. The ESP32 sleep timer runs on an internal RC oscillator
+  # that is a few percent fast, so a 6 h sleep ends several minutes early. After each
+  # timer wake the firmware compares the PCF8563 time with the planned wake time and
+  # learns how many timer seconds one real second takes (sleep_timer_scale).
+  - id: sleep_timer_scale
+    type: float
+    initial_value: "1.0"
+    restore_value: yes
+  # RTC epoch at which the last sleep started and the wake it aimed for, plus the
+  # duration handed to the timer. sleep_start_epoch = 0 means nothing to measure.
+  - id: sleep_start_epoch
+    type: uint32_t
+    initial_value: "0"
+    restore_value: yes
+  - id: sleep_target_epoch
+    type: uint32_t
+    initial_value: "0"
+    restore_value: yes
+  - id: sleep_timer_ms
+    type: uint32_t
+    initial_value: "0"
+    restore_value: yes
+
   - id: config_changed
     type: bool
     initial_value: "false"
@@ -596,6 +664,7 @@ script:
       - delay: ${awake_timeout}
       - lambda: |-
           auto now = id(rtc_time).now();
+          id(sleep_target_epoch) = 0;
           if (!now.is_valid()) {
             // Fallback if RTC has no valid time: retry after 10 minutes.
             id(next_sleep_ms) = 10 * 60 * 1000;
@@ -613,6 +682,7 @@ script:
           int seconds = target_s - now_s;
           if (seconds < 30) seconds = 30;
           id(next_sleep_ms) = seconds * 1000;
+          id(sleep_target_epoch) = now.timestamp + seconds;
           ESP_LOGI("sleep", "RTC time %02d:%02d:%02d; next scheduled wake in %d seconds", now.hour, now.minute, now.second, seconds);
       - mqtt.publish:
           topic: todo_3310/state/seconds_to_wakeup
@@ -632,6 +702,21 @@ script:
       - component.update: todo_display
       # Let the panel finish the full refresh before deep sleep powers it down.
       - delay: 3s
+      # Convert the remaining real time into timer time with the learned scale, and note
+      # the start so the next timer wake can measure the drift again.
+      - lambda: |-
+          auto now = id(rtc_time).now();
+          const uint32_t target = id(sleep_target_epoch);
+          if (target == 0 || !now.is_valid()) {
+            id(sleep_start_epoch) = 0;
+            return;
+          }
+          int64_t remaining_s = (int64_t) target - now.timestamp;
+          if (remaining_s < 30) remaining_s = 30;
+          id(next_sleep_ms) = (int) (remaining_s * 1000.0f * id(sleep_timer_scale));
+          id(sleep_start_epoch) = now.timestamp;
+          id(sleep_timer_ms) = id(next_sleep_ms);
+          ESP_LOGI("sleep", "Timer set to %d ms for %lld real s (scale %.4f)", id(next_sleep_ms), (long long) remaining_s, id(sleep_timer_scale));
       - deep_sleep.enter:
           sleep_duration: !lambda "return id(next_sleep_ms);"
 
