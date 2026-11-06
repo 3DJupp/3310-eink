@@ -13,6 +13,13 @@ substitutions:
   coreink_pwr_mos_pin: GPIO12
   battery_divider: "4.90"
   awake_timeout: 15s
+  # Once the last open task is checked: show the finish card, keep it this long
+  # (time for TOP: UNDO) and then go to sleep instead of waiting for awake_timeout.
+  done_awake_timeout: 5s
+  # Buzzer sounds (RTTTL) and volume. wake: SIDE press or cold boot, done: list finished.
+  beep_wake: "wake:d=8,o=6,b=200:c"
+  beep_done: "done:d=16,o=6,b=180:c,e,g,8c7"
+  buzzer_gain: 30%
   # Wake a little after each daypart start so a slightly slow RTC still lands in the new daypart.
   wake_margin_s: "20"
   coreink_btn:
@@ -166,7 +173,7 @@ esphome:
                 return cause == ESP_SLEEP_WAKEUP_EXT0 || (cause == ESP_SLEEP_WAKEUP_UNDEFINED && !id(rtc_alarm_wake));
             then:
               - logger.log: "Wake beep: SIDE / cold boot"
-              - rtttl.play: "wake:d=8,o=6,b=200:c"
+              - rtttl.play: "${beep_wake}"
         # Start the short awake window before the ePaper update (which is synchronous).
         - script.execute: scheduled_sleep_cycle
         # Draw once the first battery reading exists, so the boot image needs no second
@@ -392,7 +399,7 @@ output:
 rtttl:
   id: coreink_rtttl
   output: buzzer_output
-  gain: 30%
+  gain: ${buzzer_gain}
 
 # Daily use: three dayparts (morning, midday, evening), each with its own task list.
 # The device wakes at the start of every daypart; all lists reset once per day at the first one.
@@ -571,6 +578,17 @@ globals:
     initial_value: "false"
     restore_value: no
 
+  # Set when the list was just finished; the next scheduled_sleep_cycle start uses
+  # done_awake_timeout and resets it.
+  - id: finish_requested
+    type: bool
+    initial_value: "false"
+    restore_value: no
+  - id: finish_sleep
+    type: bool
+    initial_value: "false"
+    restore_value: no
+
   # True while drawing the image that stays on the panel during deep sleep.
   - id: going_to_sleep
     type: bool
@@ -711,9 +729,20 @@ script:
     mode: restart
     then:
       # Restarted on every interaction. Start before display refresh so total awake time
-      # is about 15s from the last event, including the synchronous ePaper refresh.
-      - lambda: id(going_to_sleep) = false;
-      - delay: ${awake_timeout}
+      # is about ${awake_timeout} from the last event, including the synchronous ePaper
+      # refresh. Right after the list was finished it is ${done_awake_timeout} instead; any
+      # later interaction (e.g. TOP: UNDO) goes back to the normal window.
+      - lambda: |-
+          id(going_to_sleep) = false;
+          id(finish_sleep) = id(finish_requested);
+          id(finish_requested) = false;
+      - if:
+          condition:
+            lambda: return id(finish_sleep);
+          then:
+            - delay: ${done_awake_timeout}
+          else:
+            - delay: ${awake_timeout}
       - lambda: |-
           auto now = id(rtc_time).now();
           id(sleep_target_epoch) = 0;
@@ -1226,8 +1255,13 @@ binary_sensor:
                       const int all = (1 << id(slot_tasks)[s].size()) - 1;
                       return (id(slot_done)[s] & all) == all;
                   then:
-                    - rtttl.play: "done:d=16,o=6,b=180:c,e,g,8c7"
-              - component.update: todo_display
+                    - rtttl.play: "${beep_done}"
+                    - component.update: todo_display
+                    # Finished: sleep soon instead of after the full awake window.
+                    - lambda: id(finish_requested) = true;
+                    - script.execute: scheduled_sleep_cycle
+                  else:
+                    - component.update: todo_display
             else:
               - logger.log: "SELECT: list complete, toggling locked"
 

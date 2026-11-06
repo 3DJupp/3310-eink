@@ -72,6 +72,7 @@ JSON in the same shape, published on connect for all three dayparts, after every
 ## Device interaction
 
 - UP/DOWN move the selection, PRESS toggles the selected task, TOP undoes the most recent toggle of the current wake.
+- Checking the last open task plays `beep_done`, shows the finish card and sends the device to sleep after `done_awake_timeout` (default 5 s). Any other press in that time, e.g. TOP to undo, restarts the normal `awake_timeout` window.
 - The row order is rebuilt at boot (open tasks first, then completed ones) and stays fixed while the device is awake.
 - Once every task of the active list is done, the list is locked: the finish card stays and UP, DOWN and PRESS only extend the awake window. TOP still undoes the last toggle if it happened during this wake; after the next wake that undo is gone. The daypart reset or a change in HA reopens tasks.
 - Checking the last open task plays a short jingle.

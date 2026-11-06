@@ -26,6 +26,8 @@
 - `todo_3310` switches the whole board off between dayparts on battery instead of using ESP32 deep sleep, and the BM8563 RTC alarm switches it back on. Sleep current drops from about 1.16 mA to about 1 uA (measured by weekroom in issue #14). Key detail: UART0 TX has to be driven low first, otherwise it back-feeds the USB chip and keeps the power latch held. Scheduled wakes are now at daypart start + 1 minute (the alarm has minute resolution). With USB connected the device falls back to deep sleep as before.
 - SNTP no longer uses `pcf8563.write_time`, which would overwrite the RTC alarm; only the time registers are written.
 - New MQTT topic `todo_3310/state/wake_reason` and HA sensor "todo_3310 Wake Reason". A SIDE press from power-off beeps like one from deep sleep.
+- Finishing the last open task shows the finish card and then sleeps after `done_awake_timeout` (default 5 s) instead of the full `awake_timeout`. TOP: UNDO in that time goes back to the normal window.
+- Buzzer sounds and volume are substitutions: `beep_wake`, `beep_done`, `buzzer_gain`.
 - Static IP for both devices from new secrets (`todo_3310_ip`, `clock_3310_ip`, `wifi_gateway`, `wifi_subnet`, `wifi_dns`). Skipping DHCP shortens every wake of `todo_3310`. **Breaking:** add these secrets, or delete the `manual_ip:` block to keep DHCP.
 - Mockup device frame rebuilt from the CoreInk case model.
 - README: photos of the device on real hardware, including the NFC sticker behind the e-paper panel; status updated. Demo screenshots re-rendered from the current mockup (new device frame, battery icon).
