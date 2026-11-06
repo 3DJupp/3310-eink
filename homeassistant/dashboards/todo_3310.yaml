@@ -88,13 +88,29 @@ sections:
         name: Battery
         grid_options: {columns: 6}
       - type: tile
+        entity: sensor.todo_3310_battery_voltage_mqtt
+        name: Voltage
+        grid_options: {columns: 6}
+      - type: tile
+        entity: sensor.todo_3310_wake_reason
+        name: Last wake
+        grid_options: {columns: 6}
+      - type: tile
         entity: sensor.todo_3310_last_seen
         name: Last seen
-        grid_options: {columns: 12}
+        grid_options: {columns: 6}
       - type: tile
-        entity: sensor.todo_3310_seconds_to_wakeup
-        name: Sleep at last check-in
-        grid_options: {columns: 12}
+        entity: sensor.todo_3310_next_wakeup
+        name: Next wakeup
+        grid_options: {columns: 6}
+      # Battery drain over a week. With the power-off on battery the voltage should stay
+      # almost flat overnight; a steady slope between wakes means the board stayed on.
+      - type: history-graph
+        title: Battery, last 7 days
+        hours_to_show: 168
+        entities:
+          - entity: sensor.todo_3310_battery_voltage_mqtt
+            name: Voltage
 
   - type: grid
     column_span: 2
@@ -142,7 +158,9 @@ sections:
         content: >-
           The CoreInk shows the **first five items** of the list whose daypart is
           active. All three lists are reset once a day, when the first daypart starts.
-          The device sleeps between dayparts, so changes made here reach it on its
-          next wakeup or when someone presses the side button. When a list is
-          done, its own "message when done" is shown, so write it in the language
-          the device is used in.
+          Between dayparts the device switches itself off and its clock switches it
+          back on about a minute after the next start, so changes made here reach it
+          then or when someone presses the side button. Once the last task is
+          checked, the device shows its "message when done" for a few seconds and
+          goes back to sleep, so write that message in the language the device is
+          used in.

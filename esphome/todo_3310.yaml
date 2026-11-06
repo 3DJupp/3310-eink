@@ -234,29 +234,7 @@ mqtt:
           topic: todo_3310/state/availability
           payload: online
           retain: true
-      - mqtt.publish:
-          topic: todo_3310/state/last_seen
-          payload: !lambda |-
-            auto now = id(rtc_time).now();
-            char buf[32];
-            if (now.is_valid()) snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d", now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
-            else snprintf(buf, sizeof(buf), "unknown");
-            return std::string(buf);
-          retain: true
-      # rtc_alarm: scheduled wake from full power-off (battery). timer: scheduled wake
-      # from ESP32 deep sleep (USB fallback). side_button: SIDE from deep sleep.
-      # cold_boot: SIDE from power-off, USB plug-in, reset or flash.
-      - mqtt.publish:
-          topic: todo_3310/state/wake_reason
-          payload: !lambda |-
-            if (id(rtc_alarm_wake)) return std::string("rtc_alarm");
-            switch (esp_sleep_get_wakeup_cause()) {
-              case ESP_SLEEP_WAKEUP_TIMER: return std::string("timer");
-              case ESP_SLEEP_WAKEUP_EXT0: return std::string("side_button");
-              case ESP_SLEEP_WAKEUP_UNDEFINED: return std::string("cold_boot");
-              default: return std::string("other");
-            }
-          retain: true
+      - script.execute: publish_status
       - mqtt.publish:
           topic: todo_3310/state/active_slot
           payload: !lambda 'return std::to_string(id(active_slot));'
@@ -725,6 +703,38 @@ script:
           then:
             - component.update: todo_display
 
+  # Last contact and wake reason. Sent on connect and again right before sleeping, so
+  # both arrive even if the first attempt was lost or the RTC only became valid
+  # after SNTP synced during the awake window.
+  - id: publish_status
+    mode: queued
+    then:
+      # UTC with "Z" so Home Assistant can use it as a timestamp. Not sent while the
+      # RTC has no valid time.
+      - if:
+          condition:
+            lambda: return id(rtc_time).now().is_valid();
+          then:
+            - mqtt.publish:
+                topic: todo_3310/state/last_seen
+                payload: !lambda |-
+                  return ESPTime::from_epoch_utc(id(rtc_time).now().timestamp).strftime("%Y-%m-%dT%H:%M:%SZ");
+                retain: true
+      # rtc_alarm: scheduled wake from full power-off (battery). timer: scheduled wake
+      # from ESP32 deep sleep (USB fallback). side_button: SIDE from deep sleep.
+      # cold_boot: SIDE from power-off, USB plug-in, reset or flash.
+      - mqtt.publish:
+          topic: todo_3310/state/wake_reason
+          payload: !lambda |-
+            if (id(rtc_alarm_wake)) return std::string("rtc_alarm");
+            switch (esp_sleep_get_wakeup_cause()) {
+              case ESP_SLEEP_WAKEUP_TIMER: return std::string("timer");
+              case ESP_SLEEP_WAKEUP_EXT0: return std::string("side_button");
+              case ESP_SLEEP_WAKEUP_UNDEFINED: return std::string("cold_boot");
+              default: return std::string("other");
+            }
+          retain: true
+
   - id: scheduled_sleep_cycle
     mode: restart
     then:
@@ -769,6 +779,19 @@ script:
           topic: todo_3310/state/seconds_to_wakeup
           payload: !lambda 'return std::to_string(id(next_sleep_ms) / 1000);'
           retain: true
+      # Planned wake as a UTC timestamp, rounded up to the full minute like the RTC
+      # alarm. Not sent when the RTC has no valid time.
+      - if:
+          condition:
+            lambda: return id(sleep_target_epoch) != 0;
+          then:
+            - mqtt.publish:
+                topic: todo_3310/state/next_wakeup
+                payload: !lambda |-
+                  const time_t t = (time_t) (((id(sleep_target_epoch) + 59) / 60) * 60);
+                  return ESPTime::from_epoch_utc(t).strftime("%Y-%m-%dT%H:%M:%SZ");
+                retain: true
+      - script.execute: publish_status
       # Draw the sleep image (no selection bar, "SIDE: WAKE" in the footer) with a full
       # refresh. Partial refreshes during the awake window leave ghosting, especially where
       # the black selection bar moved; the full refresh clears it before the image has to

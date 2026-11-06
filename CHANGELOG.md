@@ -28,6 +28,8 @@
 - New MQTT topic `todo_3310/state/wake_reason` and HA sensor "todo_3310 Wake Reason". A SIDE press from power-off beeps like one from deep sleep.
 - Finishing the last open task shows the finish card and then sleeps after `done_awake_timeout` (default 5 s) instead of the full `awake_timeout`. TOP: UNDO in that time goes back to the normal window.
 - Buzzer sounds and volume are substitutions: `beep_wake`, `beep_done`, `buzzer_gain`.
+- `last_seen` is now a UTC timestamp and is no longer sent as `unknown` while the RTC is invalid; together with `wake_reason` it is sent on connect and again right before sleeping. New topic `todo_3310/state/next_wakeup`.
+- HA package: battery shown without decimals, voltage with two, Last Seen and the new Next Wakeup as timestamps, Wake Reason in readable form. Dashboard: voltage, last wake, last seen, next wakeup and a 7-day battery graph instead of the seconds-to-wakeup tile.
 - Static IP for both devices from new secrets (`todo_3310_ip`, `clock_3310_ip`, `wifi_gateway`, `wifi_subnet`, `wifi_dns`). Skipping DHCP shortens every wake of `todo_3310`. **Breaking:** add these secrets, or delete the `manual_ip:` block to keep DHCP.
 - Mockup device frame rebuilt from the CoreInk case model.
 - README: photos of the device on real hardware, including the NFC sticker behind the e-paper panel; status updated. Demo screenshots re-rendered from the current mockup (new device frame, battery icon).

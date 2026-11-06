@@ -61,12 +61,13 @@ JSON in the same shape, published on connect for all three dayparts, after every
 ### Telemetry
 
 - `todo_3310/state/availability`: `online` or `offline`
-- `todo_3310/state/last_seen`: last contact timestamp
+- `todo_3310/state/last_seen`: last contact as UTC timestamp (`2026-11-06T17:01:00Z`), sent on connect and again before sleeping; not sent while the RTC has no valid time
 - `todo_3310/state/active_slot`: daypart shown at the last connect
 - `todo_3310/state/config_applied`: acknowledgement after a config message
 - `todo_3310/state/battery_voltage`: voltage
 - `todo_3310/state/battery_percent`: estimated percent
 - `todo_3310/state/seconds_to_wakeup`: snapshot computed before sleep
+- `todo_3310/state/next_wakeup`: planned wake as UTC timestamp, rounded up to the full minute like the RTC alarm
 - `todo_3310/state/wake_reason`: `rtc_alarm` (scheduled wake from power-off), `timer` (scheduled wake from deep sleep, USB), `side_button` (SIDE from deep sleep), `cold_boot` (SIDE from power-off, USB plug-in, reset, flash)
 
 ## Device interaction
