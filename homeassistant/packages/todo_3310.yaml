@@ -62,6 +62,10 @@ mqtt:
       unit_of_measurement: s
       state_class: measurement
       icon: mdi:sleep
+    - name: "todo_3310 Wake Reason"
+      unique_id: todo_3310_mqtt_wake_reason
+      state_topic: todo_3310/state/wake_reason
+      icon: mdi:alarm
   binary_sensor:
     - name: "todo_3310 Online"
       unique_id: todo_3310_mqtt_availability

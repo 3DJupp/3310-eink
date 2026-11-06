@@ -63,10 +63,32 @@ esphome:
             gpio_set_level(GPIO_NUM_12, 1);
             gpio_hold_dis(GPIO_NUM_12);
             gpio_deep_sleep_hold_dis();
-    # Log the reason for a boot. GPIO wake source is the configured wake button below.
+    # On battery the board sleeps fully powered off and the BM8563 alarm switches it
+    # back on, so the ESP32 sees a plain cold boot. The RTC alarm flag (AF, register
+    # 0x01 bit 3) tells an alarm boot apart from a SIDE button or USB boot. Always
+    # clear AF/TF and disable AIE/TIE here: while AF is set the open-drain INT line
+    # holds the power latch on and the next power-off would not work.
     - priority: 500
       then:
         - lambda: |-
+            id(rtc_alarm_wake) = false;
+            uint8_t reg = 0x01;
+            uint8_t status = 0;
+            const auto err = id(bus_int)->write_readv(0x51, &reg, 1, &status, 1);
+            if (err != i2c::ERROR_OK) {
+              ESP_LOGW("wake", "BM8563 status read failed (i2c error %d)", (int) err);
+            } else {
+              ESP_LOGI("wake", "BM8563 status 0x%02X: AF=%d TF=%d AIE=%d", status, (status >> 3) & 1, (status >> 2) & 1, (status >> 1) & 1);
+              if (status & 0x0F) {
+                const uint8_t clear[2] = {0x01, 0x00};
+                if (id(bus_int)->write(0x51, clear, sizeof(clear)) != i2c::ERROR_OK) ESP_LOGW("wake", "BM8563 status clear failed");
+              }
+              id(rtc_alarm_wake) = (status & 0x08) && esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED;
+            }
+            if (id(rtc_alarm_wake)) {
+              ESP_LOGI("wake", "Wake reason: BM8563 RTC alarm (cold boot from power-off)");
+              return;
+            }
             const auto cause = esp_sleep_get_wakeup_cause();
             if (cause == ESP_SLEEP_WAKEUP_TIMER) {
               ESP_LOGI("wake", "Wake reason: scheduled timer (daypart start)");
@@ -77,7 +99,7 @@ esphome:
               const uint64_t mask = esp_sleep_get_ext1_wakeup_status();
               ESP_LOGI("wake", "EXT1 wake pin mask: 0x%llx", (unsigned long long) mask);
             } else if (cause == ESP_SLEEP_WAKEUP_UNDEFINED) {
-              ESP_LOGI("wake", "Wake reason: normal boot/reset/power-on (USB may appear this way)");
+              ESP_LOGI("wake", "Wake reason: cold boot (SIDE button from power-off, USB, reset or flash)");
             } else {
               ESP_LOGI("wake", "Wake reason: ESP-IDF code %d", (int) cause);
             }
@@ -134,12 +156,16 @@ esphome:
     - priority: -100
       then:
         - delay: 2s
-        # Only beep when a physical GPIO caused the deep-sleep wake; timer/USB boots stay silent.
+        # Scheduled wakes (RTC alarm or ESP32 timer) stay silent. A SIDE press beeps,
+        # both from deep sleep (EXT0) and from full power-off (cold boot without AF).
+        # A USB plug-in, reset or flash also counts as a cold boot and beeps once.
         - if:
             condition:
-              lambda: return esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0;
+              lambda: |-
+                const auto cause = esp_sleep_get_wakeup_cause();
+                return cause == ESP_SLEEP_WAKEUP_EXT0 || (cause == ESP_SLEEP_WAKEUP_UNDEFINED && !id(rtc_alarm_wake));
             then:
-              - logger.log: "Wake beep: SIDE / GPIO27"
+              - logger.log: "Wake beep: SIDE / cold boot"
               - rtttl.play: "wake:d=8,o=6,b=200:c"
         # Start the short awake window before the ePaper update (which is synchronous).
         - script.execute: scheduled_sleep_cycle
@@ -209,6 +235,20 @@ mqtt:
             if (now.is_valid()) snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d", now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
             else snprintf(buf, sizeof(buf), "unknown");
             return std::string(buf);
+          retain: true
+      # rtc_alarm: scheduled wake from full power-off (battery). timer: scheduled wake
+      # from ESP32 deep sleep (USB fallback). side_button: SIDE from deep sleep.
+      # cold_boot: SIDE from power-off, USB plug-in, reset or flash.
+      - mqtt.publish:
+          topic: todo_3310/state/wake_reason
+          payload: !lambda |-
+            if (id(rtc_alarm_wake)) return std::string("rtc_alarm");
+            switch (esp_sleep_get_wakeup_cause()) {
+              case ESP_SLEEP_WAKEUP_TIMER: return std::string("timer");
+              case ESP_SLEEP_WAKEUP_EXT0: return std::string("side_button");
+              case ESP_SLEEP_WAKEUP_UNDEFINED: return std::string("cold_boot");
+              default: return std::string("other");
+            }
           retain: true
       - mqtt.publish:
           topic: todo_3310/state/active_slot
@@ -514,6 +554,18 @@ globals:
     initial_value: "0"
     restore_value: yes
 
+  # Set on boot when the BM8563 alarm flag was set on a cold boot, i.e. the RTC alarm
+  # switched the board on from full power-off.
+  - id: rtc_alarm_wake
+    type: bool
+    initial_value: "false"
+    restore_value: no
+  # True once the BM8563 alarm is programmed and read back for the next wake.
+  - id: rtc_alarm_armed
+    type: bool
+    initial_value: "false"
+    restore_value: no
+
   - id: config_changed
     type: bool
     initial_value: "false"
@@ -700,8 +752,91 @@ script:
           };
           id(todo_display)->*Access::at_update() = 0;
       - component.update: todo_display
-      # Let the panel finish the full refresh before deep sleep powers it down.
+      # Let the panel finish the full refresh before the board powers down.
       - delay: 3s
+      # Program the BM8563 alarm for the planned wake. The pcf8563 time platform keeps
+      # the RTC in UTC, so the alarm is written in UTC too. The alarm only matches
+      # minute and hour (day and weekday disabled with 0x80) and has no seconds field,
+      # so the wake is rounded up to the next full minute: daypart start + 1 min.
+      - lambda: |-
+          id(rtc_alarm_armed) = false;
+          const uint32_t target = id(sleep_target_epoch);
+          const auto now = id(rtc_time).now();
+          if (target == 0 || !now.is_valid()) {
+            ESP_LOGW("sleep", "RTC alarm skipped: no valid sleep target or RTC time");
+            return;
+          }
+          const time_t alarm_epoch = (time_t) (((target + 59) / 60) * 60);
+          if (alarm_epoch <= now.timestamp + 5) {
+            ESP_LOGW("sleep", "RTC alarm skipped: target is not in the future");
+            return;
+          }
+          const auto alarm_utc = ESPTime::from_epoch_utc(alarm_epoch);
+          const auto alarm_local = ESPTime::from_epoch_local(alarm_epoch);
+          if (!alarm_utc.is_valid()) {
+            ESP_LOGW("sleep", "RTC alarm skipped: invalid alarm timestamp");
+            return;
+          }
+          auto bcd = [](int value) -> uint8_t { return (uint8_t) (((value / 10) << 4) | (value % 10)); };
+          // Disarm and clear AF/TF first so INT is released before AIE is set again.
+          const uint8_t disarm[2] = {0x01, 0x00};
+          if (id(bus_int)->write(0x51, disarm, sizeof(disarm)) != i2c::ERROR_OK) {
+            ESP_LOGW("sleep", "RTC alarm skipped: BM8563 not responding");
+            return;
+          }
+          const uint8_t alarm_regs[5] = {0x09, bcd(alarm_utc.minute), bcd(alarm_utc.hour), 0x80, 0x80};
+          const uint8_t arm[2] = {0x01, 0x02};  // AIE=1, AF=0, TF=0, TIE=0
+          if (id(bus_int)->write(0x51, alarm_regs, sizeof(alarm_regs)) != i2c::ERROR_OK ||
+              id(bus_int)->write(0x51, arm, sizeof(arm)) != i2c::ERROR_OK) {
+            ESP_LOGW("sleep", "RTC alarm skipped: cannot write alarm registers");
+            id(bus_int)->write(0x51, disarm, sizeof(disarm));
+            return;
+          }
+          uint8_t reg = 0x01;
+          uint8_t status = 0;
+          if (id(bus_int)->write_readv(0x51, &reg, 1, &status, 1) != i2c::ERROR_OK || (status & 0x0A) != 0x02) {
+            ESP_LOGW("sleep", "RTC alarm readback failed: status 0x%02X", status);
+            id(bus_int)->write(0x51, disarm, sizeof(disarm));
+            return;
+          }
+          id(rtc_alarm_armed) = true;
+          ESP_LOGI("sleep", "RTC alarm armed for %02d:%02d local (%02d:%02d UTC)",
+                   alarm_local.hour, alarm_local.minute, alarm_utc.hour, alarm_utc.minute);
+      # Power off. GPIO12 low should release the CoreInk power latch, but on battery
+      # the idle-high UART0 TX (GPIO1) back-feeds the unpowered CP2104 USB chip, puts
+      # about 2.3 V on USB_5V, turns Q5 on via D19/R51 and keeps the latch held: the
+      # board then stays on at about 1.16 mA. So UART0 is stopped and GPIO1 driven low
+      # first (found and measured by weekroom in issue #14: ~1 uA afterwards).
+      # On battery the board loses power inside this lambda. With USB connected the
+      # 5 V rail keeps it alive: restore UART and GPIO12 and fall through to the ESP32
+      # deep-sleep timer below, as before.
+      - lambda: |-
+          if (!id(rtc_alarm_armed)) return;
+          ESP_LOGI("sleep", "Powering off: GPIO12 low, BM8563 alarm is the wake source");
+          global_preferences->sync();
+          // The ESPHome logger drives UART0 through the ESP-IDF driver, not Arduino
+          // Serial: wait for the last log line, then detach TX from the UART and
+          // drive the pin low. The driver itself stays installed.
+          uart_wait_tx_done(UART_NUM_0, pdMS_TO_TICKS(100));
+          gpio_reset_pin(GPIO_NUM_1);
+          gpio_set_direction(GPIO_NUM_1, GPIO_MODE_OUTPUT);
+          gpio_set_level(GPIO_NUM_1, 0);
+          gpio_reset_pin(GPIO_NUM_3);
+          gpio_set_direction(GPIO_NUM_3, GPIO_MODE_INPUT);
+          gpio_set_pull_mode(GPIO_NUM_3, GPIO_FLOATING);
+          gpio_hold_dis(GPIO_NUM_12);
+          gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
+          gpio_set_level(GPIO_NUM_12, 0);
+          delay(300);
+          // Still running: USB keeps the board powered. Reattach UART0 for the log.
+          gpio_set_level(GPIO_NUM_12, 1);
+          uart_set_pin(UART_NUM_0, 1, 3, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+          // Disarm the alarm so it cannot fire into the deep-sleep fallback and hold
+          // the latch; the ESP32 timer is the wake source on USB.
+          const uint8_t disarm[2] = {0x01, 0x00};
+          id(bus_int)->write(0x51, disarm, sizeof(disarm));
+          id(rtc_alarm_armed) = false;
+          ESP_LOGW("sleep", "Still powered after GPIO12 low (USB connected); using ESP32 deep sleep");
       # Convert the remaining real time into timer time with the learned scale, and note
       # the start so the next timer wake can measure the drift again.
       - lambda: |-
@@ -1183,4 +1318,33 @@ time:
     timezone: ${timezone}
     on_time_sync:
       then:
-        - pcf8563.write_time: rtc_time
+        # Not pcf8563.write_time: it writes the component's whole cached register block
+        # from 0x00, including Control_status_2 (0x01) and the alarm registers
+        # (0x09-0x0C), and would overwrite the alarm for the next wake. Write only
+        # Control_status_1 (STOP=0) and the time registers 0x02-0x08, encoded the
+        # same way ESPHome does (UTC, weekday = ESPTime day_of_week).
+        - lambda: |-
+            auto now = id(sntp_time).utcnow();
+            if (!now.is_valid()) {
+              ESP_LOGW("rtc", "SNTP time is not valid; RTC not updated");
+              return;
+            }
+            auto bcd = [](int value) -> uint8_t { return (uint8_t) (((value / 10) << 4) | (value % 10)); };
+            const uint8_t control_1[2] = {0x00, 0x00};
+            const uint8_t time_regs[8] = {
+                0x02,
+                bcd(now.second),
+                bcd(now.minute),
+                bcd(now.hour),
+                bcd(now.day_of_month),
+                (uint8_t) (now.day_of_week & 0x07),
+                bcd(now.month),
+                bcd(now.year % 100),
+            };
+            if (id(bus_int)->write(0x51, control_1, sizeof(control_1)) != i2c::ERROR_OK ||
+                id(bus_int)->write(0x51, time_regs, sizeof(time_regs)) != i2c::ERROR_OK) {
+              ESP_LOGW("rtc", "I2C write to BM8563 time registers failed");
+            } else {
+              ESP_LOGI("rtc", "BM8563 set to %04d-%02d-%02d %02d:%02d:%02d UTC; alarm untouched",
+                       now.year, now.month, now.day_of_month, now.hour, now.minute, now.second);
+            }

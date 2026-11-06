@@ -79,7 +79,7 @@ The demo screen is an SVG with a 200 × 200 viewBox that reuses the pixel coordi
 - `seconds_to_wakeup` is calculated before sleep and is not a live countdown.
 - A sleeping ESP32 cannot receive an immediate update; HA changes apply on the next wake/connect.
 - If a task is changed on the device and in HA while they cannot talk to each other, the last change to arrive wins.
-- Every wake starts with a full e-paper refresh (the panel loses its image memory in deep sleep); partial refreshes are used for button presses while awake. Ghosting and battery life still need hardware testing.
+- Every wake starts with a full e-paper refresh (the panel loses its image memory while the board sleeps); partial refreshes are used for button presses while awake. Ghosting and battery life still need hardware testing.
 
 ## Security
 
