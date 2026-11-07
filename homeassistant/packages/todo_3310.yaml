@@ -46,22 +46,42 @@ mqtt:
       unit_of_measurement: V
       device_class: voltage
       state_class: measurement
+      suggested_display_precision: 2
     - name: "todo_3310 Battery MQTT"
       unique_id: todo_3310_mqtt_battery_percent
       state_topic: todo_3310/state/battery_percent
       unit_of_measurement: "%"
       device_class: battery
       state_class: measurement
+      suggested_display_precision: 0
+    # The device sends UTC timestamps ("...Z"). Older firmware sent local time without a
+    # zone or "unknown"; those are ignored instead of breaking the timestamp sensor.
     - name: "todo_3310 Last Seen"
       unique_id: todo_3310_mqtt_last_seen
       state_topic: todo_3310/state/last_seen
+      device_class: timestamp
+      value_template: "{{ value if value.endswith('Z') else none }}"
       icon: mdi:clock-check-outline
+    - name: "todo_3310 Next Wakeup"
+      unique_id: todo_3310_mqtt_next_wakeup
+      state_topic: todo_3310/state/next_wakeup
+      device_class: timestamp
+      icon: mdi:alarm
     - name: "todo_3310 Seconds To Wakeup"
       unique_id: todo_3310_mqtt_seconds_to_wakeup
       state_topic: todo_3310/state/seconds_to_wakeup
       unit_of_measurement: s
       state_class: measurement
       icon: mdi:sleep
+    - name: "todo_3310 Wake Reason"
+      unique_id: todo_3310_mqtt_wake_reason
+      state_topic: todo_3310/state/wake_reason
+      icon: mdi:power-cycle
+      value_template: >-
+        {{ {'rtc_alarm': 'Scheduled (from power-off)',
+            'timer': 'Scheduled (deep sleep, USB)',
+            'side_button': 'Side button (deep sleep)',
+            'cold_boot': 'Side button, USB or reset'}.get(value, value) }}
   binary_sensor:
     - name: "todo_3310 Online"
       unique_id: todo_3310_mqtt_availability

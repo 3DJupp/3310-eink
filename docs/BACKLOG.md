@@ -28,9 +28,10 @@
 - [ ] Test partial-refresh progression, selection inversion, completed-task marks and ghosting on real hardware.
 - [ ] Verify time synchronization, timezone, midnight rollover, daypart resets and missed dayparts.
 - [ ] Verify sleep scheduling, button wake, task persistence and battery reporting for `todo_3310`.
+- [ ] Measure the sleep current on battery with the RTC-alarm power-off (expected about 1 uA instead of about 1.16 mA) and check how long SIDE has to be held to wake from power-off.
 - [ ] Verify clock updates while powered, Wi-Fi reconnect behavior and display refresh interval for `clock_3310`.
 - [ ] Clip or shorten task labels that are wider than a row.
-- [ ] Pin/button wake still starts with a full refresh because the panel loses its image in deep sleep; check whether keeping the panel powered is worth the battery cost.
+- [ ] Pin/button wake still starts with a full refresh because the panel loses its image while the board sleeps; check whether keeping the panel powered is worth the battery cost.
 
 ## P2 — Home Assistant and sync
 - [ ] Optional weekday rules (for example a different list on weekends).

@@ -86,6 +86,8 @@ A tag written this way opens the view but does not fire a Home Assistant `tag_sc
 - `todo_3310/state/last_seen`, `todo_3310/state/active_slot`: last contact and shown daypart
 - `todo_3310/state/battery_voltage`, `todo_3310/state/battery_percent`: battery telemetry
 - `todo_3310/state/seconds_to_wakeup`: snapshot calculated before sleep
+- `todo_3310/state/wake_reason`: why the device woke (`rtc_alarm`, `timer`, `side_button`, `cold_boot`)
+- `todo_3310/state/next_wakeup`: planned next wake (UTC timestamp)
 
 See [Architecture](ARCHITECTURE.md) for payloads and sync rules.
 

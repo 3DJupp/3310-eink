@@ -8,7 +8,22 @@ Home Assistant is the configuration UI: three to-do lists (one per daypart) hold
 
 There are three dayparts (slot 0..2, default morning 06:00, midday 12:00, evening 18:00). The active daypart is the one that started most recently; before the first start of the day, yesterday's latest daypart is still active.
 
-On every boot the firmware reads the PCF8563 RTC (the ESP32's own clock drifts during deep sleep), picks the active daypart and, once per day after the first daypart has started, resets all three lists. Only the active list is shown. Resetting everything at the start of the day (instead of each list at its own start) means yesterday's evening ticks do not stay visible all day, and a task can be ticked ahead of its daypart without being cleared when the daypart starts. Before going to sleep it schedules the next wake 20 seconds after the next daypart start, so a slightly slow RTC still lands in the new daypart. The ESP32 sleep timer itself runs on an internal RC oscillator that is a few percent fast (a 6 h sleep ends about 7 minutes early). After each timer wake the firmware compares the PCF8563 time with the planned wake time and keeps a correction factor (`sleep_timer_scale`) that stretches the next sleep. If a timer wake still comes before the daypart start, the device sleeps again for the rest right after reading the RTC, without Wi-Fi, MQTT or a display refresh.
+On every boot the firmware reads the PCF8563 RTC, picks the active daypart and, once per day after the first daypart has started, resets all three lists. Only the active list is shown. Resetting everything at the start of the day (instead of each list at its own start) means yesterday's evening ticks do not stay visible all day, and a task can be ticked ahead of its daypart without being cleared when the daypart starts. Before going to sleep it plans the next wake shortly after the next daypart start, so a slightly slow RTC still lands in the new daypart.
+
+## Sleep and power-off
+
+On battery the device does not use ESP32 deep sleep between dayparts but switches the whole board off. ESP32 deep sleep alone is not enough on the CoreInk: the regulator, the panel supply and the rest of the board stay powered, which measured about 1.16 mA (roughly 10 % battery per day, issue #14). The sequence at the end of each awake window:
+
+1. Draw the sleep image with a full refresh and wait for the panel.
+2. Program the BM8563 (PCF8563-compatible, I2C 0x51) alarm for the planned wake. The alarm only matches minute and hour and has no seconds field, so the wake is rounded up to the next full minute, i.e. daypart start + 1 minute. The RTC runs in UTC, so the alarm is written in UTC.
+3. Flush preferences, detach GPIO1 (UART0 TX) from the UART and drive it low, then pull the power-hold pin GPIO12 low. The UART step matters: an idle-high TX line back-feeds the unpowered CP2104 USB chip, puts about 2.3 V on USB_5V, turns Q5 on via D19/R51 and keeps the power latch held, so GPIO12 low alone does not switch the board off. With it the sleep current is about 1 uA (found and measured by weekroom in issue #14).
+4. The RTC alarm (INT) or the SIDE button switch the board back on through the CoreInk power circuit. The ESP32 then sees a plain cold boot; the alarm flag AF in the RTC tells a scheduled wake from a button press. Boot always clears AF and disables the alarm interrupt, because a pending AF holds INT low and would keep the latch on at the next power-off.
+
+With USB connected the 5 V rail keeps the board alive after GPIO12 low. The firmware notices that it is still running, restores GPIO12 and UART, disarms the alarm and falls back to ESP32 deep sleep with the timer and SIDE (EXT0) as wake sources, as before. That timer runs on an internal RC oscillator that is a few percent fast (a 6 h sleep ends about 7 minutes early), so after each timer wake the firmware compares the RTC time with the planned wake and keeps a correction factor (`sleep_timer_scale`) for the next sleep. A timer wake that still comes before the daypart start goes back to sleep right after reading the RTC, without Wi-Fi, MQTT or a display refresh.
+
+SNTP updates the RTC with a write to the time registers only. ESPHome's `pcf8563.write_time` writes its whole cached register block and would overwrite the alarm.
+
+From full power-off the SIDE button may need to be held a moment until the firmware has set GPIO12 high again. A SIDE press, a USB plug-in, a reset or a flash beep once; scheduled wakes stay silent.
 
 Home Assistant resets all three to-do lists at the earliest of the three start times, so both sides agree even when the device is asleep.
 
@@ -46,16 +61,19 @@ JSON in the same shape, published on connect for all three dayparts, after every
 ### Telemetry
 
 - `todo_3310/state/availability`: `online` or `offline`
-- `todo_3310/state/last_seen`: last contact timestamp
+- `todo_3310/state/last_seen`: last contact as UTC timestamp (`2026-11-06T17:01:00Z`), sent on connect and again before sleeping; not sent while the RTC has no valid time
 - `todo_3310/state/active_slot`: daypart shown at the last connect
 - `todo_3310/state/config_applied`: acknowledgement after a config message
 - `todo_3310/state/battery_voltage`: voltage
 - `todo_3310/state/battery_percent`: estimated percent
-- `todo_3310/state/seconds_to_wakeup`: snapshot computed before deep sleep
+- `todo_3310/state/seconds_to_wakeup`: snapshot computed before sleep
+- `todo_3310/state/next_wakeup`: planned wake as UTC timestamp, rounded up to the full minute like the RTC alarm
+- `todo_3310/state/wake_reason`: `rtc_alarm` (scheduled wake from power-off), `timer` (scheduled wake from deep sleep, USB), `side_button` (SIDE from deep sleep), `cold_boot` (SIDE from power-off, USB plug-in, reset, flash)
 
 ## Device interaction
 
 - UP/DOWN move the selection, PRESS toggles the selected task, TOP undoes the most recent toggle of the current wake.
+- Checking the last open task plays `beep_done`, shows the finish card and sends the device to sleep after `done_awake_timeout` (default 5 s). Any other press in that time, e.g. TOP to undo, restarts the normal `awake_timeout` window.
 - The row order is rebuilt at boot (open tasks first, then completed ones) and stays fixed while the device is awake.
 - Once every task of the active list is done, the list is locked: the finish card stays and UP, DOWN and PRESS only extend the awake window. TOP still undoes the last toggle if it happened during this wake; after the next wake that undo is gone. The daypart reset or a change in HA reopens tasks.
 - Checking the last open task plays a short jingle.
@@ -64,7 +82,7 @@ JSON in the same shape, published on connect for all three dayparts, after every
 
 ## E-paper refresh
 
-Deep sleep powers down the panel's image memory, and the ESPHome driver starts every boot with a full refresh. So each RTC wake and each button wake begins with a full refresh. Redraws during the awake window (selection, toggles) use fast partial refreshes, with a full refresh every sixth update (`full_update_every`).
+Sleeping powers down the panel's image memory, and the ESPHome driver starts every boot with a full refresh. So each RTC wake and each button wake begins with a full refresh. Redraws during the awake window (selection, toggles) use fast partial refreshes, with a full refresh every sixth update (`full_update_every`).
 
 ESPHome drives this panel's partial refresh with a generic lookup table, so moving the black selection bar leaves faint ghosting. Before going to sleep the device therefore draws a separate sleep image with a forced full refresh: no selection bar, `NEXT hh:mm` on the left and `SIDE: WAKE` on the right of the footer. The image that stays on the panel for hours is always a clean full refresh. The first draw after boot waits for the first battery reading, so no extra refresh is needed just for the battery value.
 
