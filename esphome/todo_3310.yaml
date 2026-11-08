@@ -230,6 +230,13 @@ mqtt:
     retain: true
   on_connect:
     then:
+      # ESPHome runs on_connect one loop before the client counts as connected, and
+      # mqtt.publish silently drops messages until then. Without this wait none of the
+      # messages below ever reached the broker: last seen, wake reason and the list
+      # state (including ticks made before Wi-Fi was up) were lost.
+      - wait_until:
+          condition: mqtt.connected
+          timeout: 5s
       - mqtt.publish:
           topic: todo_3310/state/availability
           payload: online
@@ -792,6 +799,11 @@ script:
                   return ESPTime::from_epoch_utc(t).strftime("%Y-%m-%dT%H:%M:%SZ");
                 retain: true
       - script.execute: publish_status
+      # Report the shown list once more, so HA has the final state even if a publish
+      # during the awake window was lost.
+      - script.execute:
+          id: publish_slot_state
+          slot: !lambda return id(active_slot);
       # Draw the sleep image (no selection bar, "SIDE: WAKE" in the footer) with a full
       # refresh. Partial refreshes during the awake window leave ghosting, especially where
       # the black selection bar moved; the full refresh clears it before the image has to
