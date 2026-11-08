@@ -29,6 +29,7 @@
 - Finishing the last open task shows the finish card and then sleeps after `done_awake_timeout` (default 5 s) instead of the full `awake_timeout`. TOP: UNDO in that time goes back to the normal window.
 - Buzzer sounds and volume are substitutions: `beep_wake`, `beep_done`, `buzzer_gain`.
 - `last_seen` is now a UTC timestamp and is no longer sent as `unknown` while the RTC is invalid; together with `wake_reason` it is sent on connect and again right before sleeping. New topic `todo_3310/state/next_wakeup`.
+- Fixed: nothing sent in `mqtt: on_connect` reached the broker, because ESPHome runs that trigger one loop before `mqtt.publish` accepts messages. Last seen, wake reason and the list state reported on connect (including ticks made before Wi-Fi was up and the device-side daily reset) were silently dropped. `on_connect` now waits for `mqtt.connected` first, and the shown list is reported once more right before sleeping.
 - HA package: battery shown without decimals, voltage with two, Last Seen and the new Next Wakeup as timestamps, Wake Reason in readable form. Dashboard: voltage, last wake, last seen, next wakeup and a 7-day battery graph instead of the seconds-to-wakeup tile.
 - Static IP for both devices from new secrets (`todo_3310_ip`, `clock_3310_ip`, `wifi_gateway`, `wifi_subnet`, `wifi_dns`). Skipping DHCP shortens every wake of `todo_3310`. **Breaking:** add these secrets, or delete the `manual_ip:` block to keep DHCP.
 - Mockup device frame rebuilt from the CoreInk case model.
